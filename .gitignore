@@ -1,0 +1,14 @@
+# Install manifests, written into whatever directory the kit installs to.
+# Only appears here if someone runs a project-scope install on the kit itself.
+.agent-delegation-kit.json
+
+# Editor / OS noise
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.swp
+
+# Local scratch
+/tmp/
+*.local.json

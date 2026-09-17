@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "_intent": "Roles are the stable abstraction. Agents name a role; the role names models. When the model catalogue changes you edit this file only - never the agents.",
+
+  "principles": [
+    "Reviewing is where model quality pays for itself. Reasoning agents get the best Claude model, and cost is not a consideration there.",
+    "Producing, searching and summarising is where money leaks. Those roles get the cheapest model that can actually finish the job.",
+    "Cheap is measured, not assumed. See registry/models.json blended cost - Claude Sonnet 5 (3.60) undercuts GPT-5.4 (5.00), GPT-5.5 (10.00) and Gemini 3.5 Flash. Substituting a GPT model for Sonnet 5 can cost MORE.",
+    "Fewer tokens beats a cheaper model. Restricting tools, capping turns and demanding conclusions instead of transcripts saves more than any model swap.",
+    "Never pick a model that is dominated - worse AND pricier than an alternative. models.json flags these in notes."
+  ],
+
+  "roles": {
+    "review": {
+      "intent": "Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens.",
+      "cost_posture": "quality-first",
+      "claude": { "model": "opus", "effort": "xhigh" },
+      "copilot": ["Claude Opus 5", "Claude Opus 4.8", "Claude Opus 4.7", "GPT-6 Astra"],
+      "rationale": "Opus 5 is the top merit score in the catalogue and the owner prefers Claude reasoning and output. GPT-6 Astra is the only non-Claude fallback rated equal on merit, so it sits last as an availability backstop rather than a cost saving - it costs 2x Opus 5."
+    },
+    "deep-reasoning": {
+      "intent": "Planning, architecture design, tricky debugging, ambiguous tradeoffs.",
+      "cost_posture": "quality-first",
+      "claude": { "model": "opus", "effort": "high" },
+      "copilot": ["Claude Opus 5", "Claude Opus 4.8", "GPT-5.6 Sol"],
+      "rationale": "A bad plan is paid for by every downstream agent, so this is the wrong place to economise. GPT-5.6 Sol is the best-value non-Claude fallback at merit 4.5."
+    },
+    "implement": {
+      "intent": "Write real code against a clear spec. Needs competence, not brilliance.",
+      "cost_posture": "balanced",
+      "claude": { "model": "sonnet", "effort": "medium" },
+      "copilot": ["Claude Sonnet 5", "GPT-5.3-Codex", "Gemini 3.7 Flash"],
+      "rationale": "Sonnet 5 leads on merit-per-dollar in the standard tier (merit 4.0 at blended 3.60) and is CHEAPER than the GPT models a naive cost rule would swap it for. If a workplace policy forbids Sonnet by name regardless of price, reorder to Gemini 3.7 Flash first - see docs/routing.md."
+    },
+    "bulk-edit": {
+      "intent": "Mechanical, verifiable changes - renames, import fixes, formatting, codemods, boilerplate.",
+      "cost_posture": "cheapest-viable",
+      "claude": { "model": "haiku", "effort": "low" },
+      "copilot": ["MAI-Code-1.1-Flash", "GPT-5.6 Luna", "Gemini 3.7 Flash"],
+      "rationale": "The work is checkable by tests or by eye, so model judgement barely matters. MAI-Code-1.1-Flash is code-tuned at the price floor (blended 0.40)."
+    },
+    "search": {
+      "intent": "Locate code, trace usages, answer where-is questions. Read-only reconnaissance.",
+      "cost_posture": "cheapest-viable",
+      "claude": { "model": "haiku", "effort": "low" },
+      "copilot": ["GPT-5.6 Luna", "Gemini 3.7 Flash", "MAI-Code-1.1-Flash"],
+      "rationale": "Search burns input tokens by the bucket and needs almost no reasoning. Gemini 3.7 Flash is second for its large context when a sweep is genuinely wide."
+    },
+    "summarize": {
+      "intent": "Condense logs, diffs, docs, meeting notes, test output into something a human or a premium agent can read.",
+      "cost_posture": "cheapest-viable",
+      "claude": { "model": "haiku", "effort": "low" },
+      "copilot": ["GPT-5.6 Luna", "Gemini 3.7 Flash"],
+      "rationale": "Highest-leverage cheap role in the kit: a summarizer that compresses 50k tokens of logs to 500 before a premium agent reads them saves more than any model swap."
+    },
+    "write-prose": {
+      "intent": "Docs, READMEs, commit messages, PR descriptions, changelogs.",
+      "cost_posture": "cheapest-viable",
+      "claude": { "model": "haiku", "effort": "low" },
+      "copilot": ["GPT-5.6 Luna", "Gemini 3.7 Flash", "Claude Haiku 4.5"],
+      "rationale": "Claude Haiku 4.5 is listed third for when Claude-style prose is worth 4.5x the Luna price."
+    }
+  },
+
+  "workplace_overrides": {
+    "_note": "Applied by scripts/build.ps1 -Profile work. Use this to satisfy an employer policy without forking the agent definitions.",
+    "profiles": {
+      "work": {
+        "description": "Employer asks that Anthropic models be reserved for work that needs them. Review and deep-reasoning keep Claude (that IS the need); producer roles move to non-Anthropic models even where Sonnet 5 would be cheaper.",
+        "role_overrides": {
+          "implement": ["Gemini 3.7 Flash", "GPT-5.3-Codex", "Claude Sonnet 5"],
+          "write-prose": ["GPT-5.6 Luna", "Gemini 3.7 Flash"]
+        }
+      },
+      "personal": {
+        "description": "No policy constraint - route purely on measured cost and merit. This is the default.",
+        "role_overrides": {}
+      }
+    }
+  }
+}
