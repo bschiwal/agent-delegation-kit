@@ -189,7 +189,8 @@ if ($blocked.Count -gt 0) {
 Write-Host ''
 Write-Host 'Next steps:' -ForegroundColor Cyan
 if ($Target -eq 'claude' -or $Target -eq 'both') {
-    Write-Host '  Claude Code : restart the CLI (or Claude Desktop), then run /agents to confirm.'
+    Write-Host '  Claude Code : start a new session (VS Code: Reload Window), then ask'
+    Write-Host '                "which subagents do you have?" to confirm.'
 }
 if ($Target -eq 'copilot' -or $Target -eq 'both') {
     Write-Host '  VS Code     : reload the window, then open Chat and pick an agent from the dropdown.'

@@ -39,28 +39,41 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 ## 3. Confirm
 
-Restart Claude Code (or the Desktop app) and run:
+Restart Claude Code (in VS Code: `Ctrl+Shift+P` -> *Developer: Reload Window*;
+in the Desktop app, quit and reopen). Agents are read when a session starts, so an
+already-open session will not see them.
+
+Then ask:
 
 ```
-/agents
+> which subagents do you have available?
 ```
 
-You should see `code-reviewer`, `architect`, `repo-scout` and the rest, each
-showing its model. Reviewers should say Opus; `repo-scout` and the other cheap
-agents should say Haiku.
+You should get `code-reviewer`, `architect`, `repo-scout` and the rest. Current
+Claude Code has no `/agents` wizard - it was removed - so asking, or listing the
+folder, is how you check:
+
+```powershell
+Get-ChildItem ~\.claude\agents
+```
+
+Each file's frontmatter shows its model: reviewers say `opus`, `repo-scout` and
+the other cheap agents say `haiku`.
 
 ## 4. Use them
 
-Three ways, in increasing order of laziness:
+Two ways:
 
 ```
 > use code-reviewer on this branch
 > review this diff for bugs
-> /agents
 ```
 
 The second works because Claude reads each agent's `description` and delegates on
 its own. You mostly do not have to name them.
+
+To edit an agent, change its source in `registry/agents/` and re-run the install -
+not the installed copy, which the next install overwrites.
 
 To run several at once, ask for it - *"have code-reviewer and security-reviewer
 both look at this branch"* - and they run in parallel, each in its own context.

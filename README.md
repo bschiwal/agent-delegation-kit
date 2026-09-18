@@ -81,7 +81,8 @@ copies of each agent. Use `-Target copilot -Scope project` if you only want one.
 Claude Desktop runs the same Claude Code engine and reads the same
 `~\.claude\agents` folder, so one install covers both.
 
-- `/agents` lists what is installed and lets you edit them.
+- Ask *"which subagents do you have?"* to confirm they loaded. (Claude Code
+  removed its `/agents` wizard; agents are plain files in `~\.claude\agents`.)
 - Ask for one by name: *"use code-reviewer on this branch"*.
 - Claude also picks agents on its own from their `description`, so
   *"review this diff"* usually routes to `code-reviewer` without being told.
