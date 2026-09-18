@@ -16,6 +16,7 @@ Regenerate from `registry/policy.json`; do not hand-edit this file.
 |---|---|
 | Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens. | **Claude Opus 5** (fall back: Claude Opus 4.8, Claude Opus 4.7, GPT-6 Astra) |
 | Planning, architecture design, tricky debugging, ambiguous tradeoffs. | **Claude Opus 5** (fall back: Claude Opus 4.8, GPT-5.6 Sol) |
+| Front door for a request: classify it, route each part to a specialist agent, sequence the handoffs, merge the results. | **Claude Sonnet 5** (fall back: GPT-5.3-Codex, Gemini 3.7 Flash) |
 | Write real code against a clear spec. Needs competence, not brilliance. | **Claude Sonnet 5** (fall back: GPT-5.3-Codex, Gemini 3.7 Flash) |
 | Mechanical, verifiable changes - renames, import fixes, formatting, codemods, boilerplate. | **MAI-Code-1.1-Flash** (fall back: GPT-5.6 Luna, Gemini 3.7 Flash) |
 | Locate code, trace usages, answer where-is questions. Read-only reconnaissance. | **GPT-5.6 Luna** (fall back: Gemini 3.7 Flash, MAI-Code-1.1-Flash) |
@@ -79,7 +80,7 @@ When a specialist agent from this kit fits the task, hand off to it - it already
 carries the right model and the right instructions:
 
 <!-- BEGIN:agent-list -->
-`architect` `bulk-editor` `code-reviewer` `data-model-reviewer` `debugger` `delegation-router` `doc-writer` `implementer` `log-triager` `pr-scribe` `repo-scout` `security-reviewer` `test-author`
+`architect` `bulk-editor` `code-reviewer` `data-model-reviewer` `debugger` `delegation-router` `doc-writer` `implementer` `log-triager` `pr-scribe` `repo-scout` `security-reviewer` `test-author` `triage-lead`
 <!-- END:agent-list -->
 
 The highest-value pattern in the kit is **cheap model implements, premium Claude

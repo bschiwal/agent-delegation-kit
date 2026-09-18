@@ -25,6 +25,13 @@
       "copilot": ["Claude Opus 5", "Claude Opus 4.8", "GPT-5.6 Sol"],
       "rationale": "A bad plan is paid for by every downstream agent, so this is the wrong place to economise. GPT-5.6 Sol is the best-value non-Claude fallback at merit 4.5."
     },
+    "triage": {
+      "intent": "Front door for a request: classify it, route each part to a specialist agent, sequence the handoffs, merge the results.",
+      "cost_posture": "balanced",
+      "claude": { "model": "sonnet", "effort": "medium" },
+      "copilot": ["Claude Sonnet 5", "GPT-5.3-Codex", "Gemini 3.7 Flash"],
+      "rationale": "Triage sits in front of every request, so it runs far more often than any specialist - putting it on Opus would make the front door the biggest line item. Routing is judgement, but shallow judgement: the deep reasoning is pushed down to the Opus agents it calls. Sonnet 5 is the cheapest model that routes reliably."
+    },
     "implement": {
       "intent": "Write real code against a clear spec. Needs competence, not brilliance.",
       "cost_posture": "balanced",
@@ -63,11 +70,12 @@
   },
 
   "workplace_overrides": {
-    "_note": "Applied by scripts/build.ps1 -Profile work. Use this to satisfy an employer policy without forking the agent definitions.",
+    "_note": "Applied by scripts/build.ps1 -Preset work. Use this to satisfy an employer policy without forking the agent definitions.",
     "profiles": {
       "work": {
-        "description": "Employer asks that Anthropic models be reserved for work that needs them. Review and deep-reasoning keep Claude (that IS the need); producer roles move to non-Anthropic models even where Sonnet 5 would be cheaper.",
+        "description": "Employer asks that Anthropic models be reserved for work that needs them. Review and deep-reasoning keep Claude (that IS the need); producer roles and the high-volume triage front door move to non-Anthropic models even where Sonnet 5 would be cheaper. Claude stays last in those chains as a fallback.",
         "role_overrides": {
+          "triage": ["Gemini 3.7 Flash", "GPT-5.3-Codex", "Claude Sonnet 5"],
           "implement": ["Gemini 3.7 Flash", "GPT-5.3-Codex", "Claude Sonnet 5"],
           "write-prose": ["GPT-5.6 Luna", "Gemini 3.7 Flash"]
         }

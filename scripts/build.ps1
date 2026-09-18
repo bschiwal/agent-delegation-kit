@@ -200,8 +200,31 @@ $warnings = @()
 $substitutions = @()
 $degraded = @()
 
-foreach ($src in $sources) {
-    $agent = Read-AgentSource $src.FullName
+# Pre-pass: an orchestrating agent's allow-list is every other delegable agent,
+# so all names must be known before any agent is emitted. Generating the list
+# means a newly added agent joins the orchestrator's team without anyone
+# remembering to edit it.
+$parsed = @()
+foreach ($src in $sources) { $parsed += (Read-AgentSource $src.FullName) }
+$delegableNames = @($parsed | Where-Object { $_.Meta.delegable -ne $false } | ForEach-Object { $_.Meta.name } | Sort-Object)
+$allNames = @($parsed | ForEach-Object { $_.Meta.name })
+
+function Get-DelegateList {
+    # "delegates": "*" means every delegable agent except itself; an array names
+    # them explicitly and is validated so a typo cannot silently shrink the team.
+    param($Meta, [string]$File)
+    if ($null -eq $Meta.delegates) { return $null }
+    if ($Meta.delegates -is [string] -and $Meta.delegates -eq '*') {
+        return @($delegableNames | Where-Object { $_ -ne $Meta.name })
+    }
+    $named = [string[]]$Meta.delegates
+    foreach ($n in $named) {
+        if ($allNames -notcontains $n) { throw "${File}: delegates names unknown agent '$n'." }
+    }
+    return @($named | Where-Object { $_ -ne $Meta.name })
+}
+
+foreach ($agent in $parsed) {
     $meta  = $agent.Meta
     $role  = $policy.roles.($meta.role)
     if ($null -eq $role) {
@@ -216,8 +239,18 @@ foreach ($src in $sources) {
         }
     }
 
+    $delegates = Get-DelegateList $meta $agent.File
+
     # ---- Claude Code output ----
     $claudeExtra = Get-ExtraProperties $meta.claude @('model')
+    if ($null -ne $delegates -and $delegates.Count -gt 0) {
+        # Agent(a, b, c) is an allow-list: the orchestrator can spawn only these.
+        $agentTool = 'Agent(' + ($delegates -join ', ') + ')'
+        if ($claudeExtra.Contains('tools') -and -not [string]::IsNullOrWhiteSpace($claudeExtra['tools'])) {
+            $claudeExtra['tools'] = $agentTool + ', ' + $claudeExtra['tools']
+        }
+        else { $claudeExtra['tools'] = $agentTool }
+    }
     $lines = @('---')
     $lines += "name: $($meta.name)"
     $lines += "description: $(Format-YamlScalar $meta.description)"
@@ -275,6 +308,15 @@ foreach ($src in $sources) {
     }
 
     $copilotExtra = Get-ExtraProperties $meta.copilot @('model')
+    if ($null -ne $delegates -and $delegates.Count -gt 0) {
+        # VS Code needs both: the 'agent' tool set to delegate at all, and the
+        # 'agents' list to say which custom agents it may call.
+        $copilotExtra['agents'] = [string[]]$delegates
+        $ctools = @()
+        if ($copilotExtra.Contains('tools')) { $ctools = [string[]]$copilotExtra['tools'] }
+        if ($ctools -notcontains 'agent') { $ctools += 'agent' }
+        $copilotExtra['tools'] = [string[]]$ctools
+    }
     $lines = @('---')
     $lines += "name: $($meta.name)"
     $lines += "description: $(Format-YamlScalar $meta.description)"

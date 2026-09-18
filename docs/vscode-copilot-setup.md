@@ -22,7 +22,7 @@ cd agent-delegation-kit
 
 This writes to:
 
-- `~\.copilot\agents\` - the 13 agents, available in every workspace
+- `~\.copilot\agents\` - the 14 agents, available in every workspace
 - `~\.copilot\instructions\` - the always-on routing rules (from
   `-WithInstructions`), so ad-hoc chat follows the cost policy too
 
@@ -35,7 +35,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ## 3. Confirm
 
 Reload the VS Code window (`Ctrl+Shift+P` -> *Developer: Reload Window*), open
-Chat, and click the agent dropdown above the input box. The 13 agents should be
+Chat, and click the agent dropdown above the input box. The 14 agents should be
 listed. `/agents` opens **Configure Custom Agents** if you want to inspect or edit
 one.
 

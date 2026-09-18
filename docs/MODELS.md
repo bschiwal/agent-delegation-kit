@@ -48,6 +48,7 @@ Built with profile **personal**.
 |---|---|---|---|
 | review | opus | Claude Opus 5 | quality-first |
 | deep-reasoning | opus | Claude Opus 5 | quality-first |
+| triage | sonnet | Claude Sonnet 5 | balanced |
 | implement | sonnet | Claude Sonnet 5 | balanced |
 | bulk-edit | haiku | MAI-Code-1.1-Flash | cheapest-viable |
 | search | haiku | GPT-5.6 Luna | cheapest-viable |
@@ -71,4 +72,5 @@ Built with profile **personal**.
 | repo-scout | search | haiku | GPT-5.6 Luna |
 | security-reviewer | review | opus | Claude Opus 5 |
 | test-author | implement | sonnet | Claude Sonnet 5 |
+| triage-lead | triage | sonnet | Claude Sonnet 5 |
 

@@ -91,6 +91,36 @@ Each agent carries its own model, tool allow-list, effort level and turn cap, so
 delegating to `repo-scout` genuinely costs less than searching inline - it runs
 on Haiku at low effort with no write tools.
 
+### Hand the whole task to a PM: `triage-lead`
+
+If you would rather not pick agents yourself, give the task to `triage-lead`:
+
+```
+> use triage-lead: add a Prior Year Margin % measure to the rebate model and make sure it's right
+```
+
+It reads the request, sends recon to `repo-scout`, design to `architect` if the
+approach is not obvious, the build to `implementer`, and then the change to
+`code-reviewer`, plus `data-model-reviewer` for anything that produces a number.
+Confirmed findings go back for a fix. You get one merged answer that ends with the
+chain that actually ran:
+
+```
+Team: repo-scout -> implementer -> code-reviewer + data-model-reviewer -> implementer
+```
+
+It has no edit tools on purpose, so it cannot skip a specialist and quietly do the
+work itself. It runs on Sonnet rather than Opus because it sits in front of every
+request - the deep reasoning happens in the Opus agents it calls.
+
+`delegation-router` is the plan-only version: it returns the same plan and runs
+nothing. Use it when you want to see or adjust the plan before any work starts.
+
+To make `triage-lead` the front door for every Claude Code session, set
+`"agent": "triage-lead"` in `~\.claude\settings.json`, or start the CLI with
+`claude --agent triage-lead`. That applies to *every* project, so try it per task
+first.
+
 ### GitHub Copilot (VS Code)
 
 Needs a recent VS Code with the Copilot Chat extension - custom agents use the
@@ -115,6 +145,7 @@ policy once and every agent follows on the next build.
 |---|---|---|---|
 | `review` | `opus` | Claude Opus 5 | Quality first. A missed bug costs more than the tokens. |
 | `deep-reasoning` | `opus` | Claude Opus 5 | A bad plan is paid for by every agent downstream. |
+| `triage` | `sonnet` | Claude Sonnet 5 | Runs in front of every request, so it must be cheap; delegates the deep thinking. |
 | `implement` | `sonnet` | Claude Sonnet 5 | Best merit-per-dollar in the standard tier. |
 | `bulk-edit` | `haiku` | MAI-Code-1.1-Flash | Mechanical and verifiable - judgement barely matters. |
 | `search` | `haiku` | GPT-5.6 Luna | Burns input tokens, needs almost no reasoning. |
@@ -292,6 +323,7 @@ that is chat-only and cannot drive an agent all surface as errors or warnings.
 | `architect` | deep-reasoning | A plan before code exists |
 | `debugger` | deep-reasoning | Root cause of a failure |
 | `delegation-router` | deep-reasoning | Which agents to use for a task, in what order |
+| `triage-lead` | triage | PM: delegates the whole task to the others and merges the result |
 | `implementer` | implement | Build to a settled spec |
 | `test-author` | implement | Tests for existing code |
 | `bulk-editor` | bulk-edit | The same mechanical change across many files |

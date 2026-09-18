@@ -28,7 +28,7 @@ cd agent-delegation-kit
 .\scripts\install.ps1 -Target claude
 ```
 
-This writes 13 agent files to `~\.claude\agents\`, which makes them available in
+This writes 14 agent files to `~\.claude\agents\`, which makes them available in
 every project on the machine.
 
 If PowerShell refuses to run the script:

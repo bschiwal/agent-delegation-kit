@@ -7,8 +7,8 @@ This repo generates agent profiles for two platforms from one source. Read
 
 **Never put a model name in an agent source.** Agents name a `role`;
 `registry/policy.json` maps roles to models. That indirection is the whole point -
-Copilot's catalogue changes every few weeks, and a model hardcoded in thirteen
-agent files is thirteen files to fix. `build.ps1` drops a stray `model` field and
+Copilot's catalogue changes every few weeks, and a model hardcoded in fourteen
+agent files is fourteen files to fix. `build.ps1` drops a stray `model` field and
 warns.
 
 ## Where to make a change
@@ -62,6 +62,18 @@ frontmatter verbatim, so any field either platform supports works without changi
 the build script. `tools` is a comma-separated string for Claude and an array for
 Copilot - that difference is in the platforms, not this repo.
 
+Two top-level fields control orchestration, and neither is emitted as-is:
+
+| Field | Effect |
+|---|---|
+| `"delegates": "*"` | This agent orchestrates. The build generates its allow-list from every delegable agent except itself: `Agent(a, b, ...)` prepended to Claude `tools`, and `agents: [...]` plus the `agent` tool set for Copilot. An array of names instead of `"*"` restricts it, and unknown names fail the build. |
+| `"delegable": false` | Keep this agent out of every orchestrator's allow-list. Set on `triage-lead` (no orchestrator calls another) and `delegation-router` (a plan-only agent is useless to something that executes). |
+
+Because the allow-list is generated, a new agent joins `triage-lead`'s team on the
+next build. Its prompt still has a hand-written roster table saying *when* to use
+each agent - update that when you add one, or the PM will know the agent exists
+but not what it is for.
+
 ## Writing agent prompts
 
 The prompts are the actual product; the scripts are plumbing. What makes them work:
@@ -82,7 +94,7 @@ The prompts are the actual product; the scripts are plumbing. What makes them wo
 There is no test suite. Verify by hand:
 
 ```powershell
-.\scripts\build.ps1                  # must report 13 agents, no warnings
+.\scripts\build.ps1                  # must report 14 agents, no warnings
 .\scripts\build.ps1 -Preset work     # review roles must still be Claude
 .\scripts\refresh-models.ps1         # must parse ~29 models, no broken routes
 .\scripts\set-availability.ps1 -List # every role must resolve to something
