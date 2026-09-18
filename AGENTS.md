@@ -20,7 +20,9 @@ warns.
 | Add or reword an agent's prompt | `registry/agents/<name>.md` |
 | Correct a price | Run `scripts/refresh-models.ps1 -Apply` - do not hand-edit |
 | Change a merit score or note | `registry/models.json` - these are hand-maintained |
+| Record which models your org actually allows | `scripts/set-availability.ps1` - do not hand-edit availability.json |
 | Change the always-on chat rules | `templates/model-routing.instructions.md` |
+| Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
 
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
 up locally.
@@ -83,7 +85,31 @@ There is no test suite. Verify by hand:
 .\scripts\build.ps1                  # must report 13 agents, no warnings
 .\scripts\build.ps1 -Preset work     # review roles must still be Claude
 .\scripts\refresh-models.ps1         # must parse ~29 models, no broken routes
+.\scripts\set-availability.ps1 -List # every role must resolve to something
 ```
+
+Availability filtering is the part most likely to break silently, so exercise the
+blocked path rather than trusting the unrestricted default:
+
+```powershell
+# Simulate an org that blocks the whole premium tier
+.\scripts\set-availability.ps1 -Preset work -Mode allow `
+  -Models 'Claude Sonnet 5','Claude Haiku 4.5','GPT-5.6 Luna','Gemini 3.7 Flash'
+.\scripts\build.ps1 -Preset work     # must SUBSTITUTE review to Claude Sonnet 5, loudly
+.\scripts\set-availability.ps1 -Preset work -Mode all   # reset
+```
+
+Two properties matter there: no role silently ends up on a cheap model, and no
+unscored model is ever substituted in.
+
+The `refresh-models.ps1` JSON emitter must be idempotent - run it with `-Apply`
+three times and `registry/models.json` must stop changing after the first. Escape
+drift in `Format-JsonString` is how that breaks.
+
+The workflow's embedded PowerShell is not covered by the script parse check. After
+editing `.github/workflows/refresh-models.yml`, extract each `run: |` block and
+run it through `[System.Management.Automation.Language.Parser]::ParseInput`, or
+trigger the workflow manually with `apply` unchecked.
 
 Then install into a scratch directory rather than your real config:
 
@@ -106,6 +132,17 @@ Targets **Windows PowerShell 5.1**, so:
 - `Set-Content -Encoding utf8` writes a BOM. Use `Write-Utf8NoBom`.
 - Do not name a parameter `$Profile` - it shadows an automatic variable. Hence
   `-Preset`.
+- **Variable names are case-insensitive.** A local `$list` assigns to the
+  `[switch]$List` parameter and throws a type-conversion error from the call site,
+  which makes it look like a parameter-binding bug. This has bitten twice
+  (`$Profile`, `$list`). Prefix locals that shadow a parameter - `$profModels`,
+  `$profMode`.
+- In a double-quoted string the backtick is the escape character, so three
+  literal backticks need six. Use a single-quoted `'```'` instead, especially in
+  the workflow's embedded PowerShell.
+- In `-replace`, the replacement operand is a literal string where `\` is not
+  special. To emit a JSON-escaped backslash the replacement is `'\\'`, not
+  `'\\\\'` - the latter produces four and compounds on every rewrite.
 
 ## Refresh script fragility
 

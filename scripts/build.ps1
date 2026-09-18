@@ -34,6 +34,58 @@ $repo = Split-Path -Parent $PSScriptRoot
 $models = Get-Content (Join-Path $repo 'registry\models.json') -Raw | ConvertFrom-Json
 $policy = Get-Content (Join-Path $repo 'registry\policy.json') -Raw | ConvertFrom-Json
 
+# Availability: what this preset can actually pick. Org policy and plan tier
+# remove models, and a role whose whole fallback chain is blocked would otherwise
+# emit a model list that never resolves.
+$availPath = Join-Path $repo 'registry\availability.json'
+$availMode = 'all'
+$availList = @()
+$availVerified = $null
+if (Test-Path $availPath) {
+    $avail = Get-Content $availPath -Raw | ConvertFrom-Json
+    $availProfile = $avail.profiles.$Preset
+    if ($null -ne $availProfile) {
+        $availMode = $availProfile.mode
+        $availList = [string[]]$availProfile.models
+        $availVerified = $availProfile.verified_on
+    }
+}
+
+function Test-Available {
+    param([string]$Name)
+    if ($availMode -eq 'allow') { return ($availList -contains $Name) }
+    if ($availMode -eq 'deny')  { return (-not ($availList -contains $Name)) }
+    return $true
+}
+
+# Models reachable under this preset, richest metadata first for substitution.
+$reachable = @()
+foreach ($m in $models.models) {
+    if ((Test-Available $m.copilot_name) -and ($m.agent_mode -ne $false)) { $reachable += $m }
+}
+if ($reachable.Count -eq 0) {
+    throw "No agent-capable models are available under preset '$Preset'. Check registry/availability.json."
+}
+
+function Get-Substitute {
+    # A role's entire preferred chain is blocked. Pick the best reachable stand-in
+    # from the role's cost posture rather than emitting a list that resolves to
+    # nothing and lets the host choose silently.
+    param([string]$Posture)
+    if ($Posture -eq 'quality-first') {
+        return ($reachable | Sort-Object -Property @{E={$_.merit}; Descending=$true}, @{E={$_.blended}} | Select-Object -First 1)
+    }
+    if ($Posture -eq 'cheapest-viable') {
+        $viable = $reachable | Where-Object { $_.merit -ge 2.5 }
+        if ($viable.Count -eq 0) { $viable = $reachable }
+        return ($viable | Sort-Object -Property @{E={$_.blended}} | Select-Object -First 1)
+    }
+    # balanced: best merit per dollar, tie-broken by price
+    return ($reachable |
+        Sort-Object -Property @{E={ if ($_.blended -gt 0) { $_.merit / $_.blended } else { 0 } }; Descending=$true}, @{E={$_.blended}} |
+        Select-Object -First 1)
+}
+
 $overrides = @{}
 $profileNode = $policy.workplace_overrides.profiles.$Preset
 if ($null -ne $profileNode -and $null -ne $profileNode.role_overrides) {
@@ -145,6 +197,8 @@ if ($sources.Count -eq 0) { throw 'No agent sources found in registry/agents.' }
 
 $summary = @()
 $warnings = @()
+$substitutions = @()
+$degraded = @()
 
 foreach ($src in $sources) {
     $agent = Read-AgentSource $src.FullName
@@ -178,15 +232,45 @@ foreach ($src in $sources) {
     Write-Utf8NoBom (Join-Path $claudeOut "$($meta.name).md") $claudeText
 
     # ---- Copilot output ----
-    $copilotModels = [string[]]$role.copilot
-    if ($overrides.ContainsKey($meta.role)) { $copilotModels = [string[]]$overrides[$meta.role] }
+    $preferred = [string[]]$role.copilot
+    if ($overrides.ContainsKey($meta.role)) { $preferred = [string[]]$overrides[$meta.role] }
 
-    foreach ($cm in $copilotModels) {
+    foreach ($cm in $preferred) {
         if (-not $agentCapable.ContainsKey($cm)) {
             $warnings += "$($meta.name): model '$cm' is not in registry/models.json - it may not exist in the picker."
         }
         elseif ($agentCapable[$cm] -eq $false) {
             $warnings += "$($meta.name): model '$cm' is chat-only and cannot drive an agent. Remove it from role '$($meta.role)'."
+        }
+    }
+
+    # Drop models this preset cannot reach - a blocked model in the list is dead
+    # weight at best, and at worst hides that the role never gets its first choice.
+    $copilotModels = @()
+    $dropped = @()
+    foreach ($cm in $preferred) {
+        if (Test-Available $cm) { $copilotModels += $cm } else { $dropped += $cm }
+    }
+
+    if ($copilotModels.Count -eq 0) {
+        $sub = Get-Substitute $role.cost_posture
+        $copilotModels = @($sub.copilot_name)
+        $substitutions += [pscustomobject]@{
+            Agent    = $meta.name
+            Role     = $meta.role
+            Posture  = $role.cost_posture
+            Blocked  = ($preferred -join ', ')
+            Chosen   = $sub.copilot_name
+            Merit    = $sub.merit
+        }
+    }
+    elseif ($dropped.Count -gt 0) {
+        $degraded += [pscustomobject]@{
+            Agent   = $meta.name
+            Role    = $meta.role
+            Dropped = ($dropped -join ', ')
+            NowUses = $copilotModels[0]
+            WasFirstChoice = ($dropped -contains $preferred[0])
         }
     }
 
@@ -266,13 +350,33 @@ $md += "Catalogue verified **$($models.verified_on)**. Prices are USD per 1M tok
 $md += ''
 $md += '`blended = 0.8 * input + 0.2 * output` - agent turns are input-heavy, so this ranks real spend better than headline output price.'
 $md += ''
-$md += '| Model | Vendor | In | Out | Blended | Tier | Merit | Agent mode |'
-$md += '|---|---|---:|---:|---:|---|---:|---|'
+if ($availMode -eq 'all') {
+    $md += "Availability for preset **$Preset** is unrestricted, so the whole catalogue is assumed reachable."
+}
+else {
+    $md += "Availability for preset **$Preset**: mode ``$availMode``, **$($reachable.Count) of $($models.models.Count)** models reachable"
+    if ($availVerified) { $md += " (recorded $availVerified)." } else { $md += '.' }
+    $md += ''
+    $md += 'A model marked *blocked* is in GitHub''s catalogue but not available to this profile, so the build strips it from every agent. Update with `scripts/set-availability.ps1`.'
+}
+$md += ''
+
+$md += '| Model | Vendor | In | Out | Blended | Tier | Merit | Agent mode | Reachable |'
+$md += '|---|---|---:|---:|---:|---|---:|---|---|'
 foreach ($m in ($models.models | Sort-Object blended)) {
     $am = 'yes'
     if ($m.agent_mode -eq $false) { $am = '**no**' }
     elseif ($null -eq $m.agent_mode) { $am = 'unverified' }
-    $md += "| $($m.copilot_name) | $($m.vendor) | `$$('{0:N2}' -f $m.price.in) | `$$('{0:N2}' -f $m.price.out) | **$('{0:N2}' -f $m.blended)** | $($m.tier) | $($m.merit) | $am |"
+    if (Test-Available $m.copilot_name) { $reach = 'yes' } else { $reach = '**blocked**' }
+    $merit = $m.merit
+    if ($null -eq $merit) { $merit = '_unscored_' }
+    $md += "| $($m.copilot_name) | $($m.vendor) | `$$('{0:N2}' -f $m.price.in) | `$$('{0:N2}' -f $m.price.out) | **$('{0:N2}' -f $m.blended)** | $($m.tier) | $merit | $am | $reach |"
+}
+
+$unscored = @($models.models | Where-Object { $null -eq $_.merit })
+if ($unscored.Count -gt 0) {
+    $md += ''
+    $md += "**$($unscored.Count) model(s) are unscored.** Automatic substitution never picks an unscored model, so they stay unused until you set ``merit`` in ``registry/models.json`` or name one explicitly in a role: " + (($unscored | ForEach-Object { $_.copilot_name }) -join ', ') + '.'
 }
 $md += ''
 $md += '## Role routing'
@@ -307,6 +411,39 @@ $summary | Format-Table -AutoSize
 Write-Host "  build/claude/agents/   $($summary.Count) files"
 Write-Host "  build/copilot/agents/  $($summary.Count) files"
 Write-Host "  docs/MODELS.md         regenerated"
+
+if ($availMode -ne 'all') {
+    Write-Host ''
+    Write-Host "Availability: mode '$availMode', $($reachable.Count) of $($models.models.Count) models reachable" -ForegroundColor Cyan
+    if ($availVerified) { Write-Host "  recorded $availVerified" -ForegroundColor DarkGray }
+}
+elseif ($null -eq $availVerified) {
+    Write-Host ''
+    Write-Host "Availability for '$Preset' has never been recorded - assuming the whole catalogue." -ForegroundColor DarkGray
+    Write-Host '  If your org blocks models, run: .\scripts\set-availability.ps1 -List' -ForegroundColor DarkGray
+}
+
+if ($substitutions.Count -gt 0) {
+    Write-Host ''
+    Write-Host 'SUBSTITUTED - every preferred model for these roles is blocked:' -ForegroundColor Red
+    foreach ($s in ($substitutions | Sort-Object Role -Unique)) {
+        Write-Host "  role '$($s.Role)' ($($s.Posture))" -ForegroundColor Red
+        Write-Host "    wanted: $($s.Blocked)" -ForegroundColor DarkGray
+        Write-Host "    using:  $($s.Chosen) (merit $($s.Merit))" -ForegroundColor Yellow
+    }
+    Write-Host '  Fix properly by adding a reachable model to that role in registry/policy.json.' -ForegroundColor DarkGray
+}
+
+if ($degraded.Count -gt 0) {
+    $lostFirst = $degraded | Where-Object { $_.WasFirstChoice }
+    if ($lostFirst.Count -gt 0) {
+        Write-Host ''
+        Write-Host 'First choice blocked - these roles fall back:' -ForegroundColor Yellow
+        foreach ($d in ($lostFirst | Sort-Object Role -Unique)) {
+            Write-Host "  role '$($d.Role)': blocked $($d.Dropped) -> now uses $($d.NowUses)" -ForegroundColor Yellow
+        }
+    }
+}
 
 if ($warnings.Count -gt 0) {
     Write-Host ''

@@ -1,0 +1,120 @@
+name: Refresh model catalogue
+
+# Copilot's model list changes every few weeks. This checks GitHub's own pricing
+# docs on a schedule and opens a PR when anything moved, so new models surface
+# without anyone remembering to look.
+#
+# Runs on windows-latest because the scripts use backslash paths. They target
+# Windows PowerShell 5.1 for local use, but the workflow glue runs under pwsh
+# (PowerShell 7, preinstalled) whose -Encoding utf8 is BOM-less - PS 5.1 would
+# write a BOM into GITHUB_OUTPUT and break it.
+
+on:
+  schedule:
+    # Mondays 08:00 UTC. GitHub may delay scheduled runs under load.
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Write changes and open a PR (uncheck to only report)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  refresh:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report catalogue drift
+        run: |
+          $out = .\scripts\refresh-models.ps1 2>&1 | Out-String
+          Write-Host $out
+          # Surface the report in the job summary so a no-change run is still readable.
+          $fence = '```'
+          @('## Model catalogue check', '', $fence, $out.TrimEnd(), $fence) |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Apply and rebuild
+        if: github.event_name == 'schedule' || inputs.apply
+        run: |
+          .\scripts\refresh-models.ps1 -Apply
+          .\scripts\build.ps1
+
+      - name: Detect changes
+        id: diff
+        if: github.event_name == 'schedule' || inputs.apply
+        run: |
+          if (-not [bool](git status --porcelain)) {
+            Write-Host 'No change.'
+            "changed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            exit 0
+          }
+
+          Write-Host 'Catalogue changed.'
+          "changed=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          # New models arrive with merit null, so no role routes to them until a
+          # human scores them. Spell that out in the PR body.
+          $catalogue = Get-Content registry/models.json -Raw | ConvertFrom-Json
+          $needReview = @($catalogue.models | Where-Object { $null -eq $_.merit })
+
+          $lines = @('Automated refresh from GitHub''s Copilot pricing docs.', '')
+
+          if ($needReview.Count -gt 0) {
+            $lines += '### Needs your judgement'
+            $lines += ''
+            $lines += 'These arrived with no `merit` score, so no role will route to them yet:'
+            $lines += ''
+            foreach ($n in $needReview) {
+              $inP  = '$' + $n.price.in
+              $outP = '$' + $n.price.out
+              $lines += "- **$($n.copilot_name)** ($($n.vendor), $($n.category)) - $inP in / $outP out, blended $($n.blended), tier ``$($n.tier)``"
+            }
+            $lines += ''
+            $lines += 'Set `merit` and confirm `agent_mode` in `registry/models.json`, then decide whether any role should prefer them.'
+            $lines += ''
+
+            $avail = Get-Content registry/availability.json -Raw | ConvertFrom-Json
+            $restricted = @($avail.profiles.PSObject.Properties | Where-Object { $_.Value.mode -ne 'all' })
+            if ($restricted.Count -gt 0) {
+              $lines += '> A new model will not be used under a restricted profile until you add it with'
+              $lines += '> `scripts/set-availability.ps1`. Check your VS Code model picker first - a model'
+              $lines += '> in the docs is not necessarily one your org lets you pick.'
+              $lines += ''
+            }
+          }
+          else {
+            $lines += 'Prices or metadata moved; no new models to score.'
+            $lines += ''
+          }
+
+          $lines += 'Review `docs/MODELS.md` for the regenerated cost and merit tables.'
+
+          $bodyPath = Join-Path $env:RUNNER_TEMP 'pr-body.md'
+          $lines -join "`n" | Out-File -FilePath $bodyPath -Encoding utf8
+          "body_path=$bodyPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/refresh-models
+          delete-branch: true
+          commit-message: 'Refresh Copilot model catalogue from GitHub docs'
+          title: 'Refresh Copilot model catalogue'
+          body-path: ${{ steps.diff.outputs.body_path }}
+          add-paths: |
+            registry/models.json
+            build/**
+            docs/MODELS.md
+          labels: models

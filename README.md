@@ -173,10 +173,55 @@ Edit `workplace_overrides.profiles.work` in
 
 ---
 
+## Availability: what you can actually pick
+
+Your model picker shows a fraction of GitHub's catalogue - plan tier and org
+policy remove models, usually the expensive top-end ones this kit prefers. That
+matters, because an agent whose whole fallback chain is blocked does not fail
+loudly; it falls through and the host substitutes something, possibly the cheapest
+model available. A review that looks like a review and isn't.
+
+So record what you actually have. In VS Code, `Ctrl+Alt+.` shows the picker:
+
+```powershell
+.\scripts\set-availability.ps1 -List     # what is recorded, and what each role resolves to
+.\scripts\set-availability.ps1 -Preset work -Mode allow `
+  -Models 'Claude Sonnet 5','Claude Haiku 4.5','GPT-5.6 Luna','Gemini 3.7 Flash'
+.\scripts\build.ps1 -Preset work
+```
+
+The build then strips blocked models from every agent and tells you where it hurt:
+
+```
+Availability: mode 'allow', 6 of 29 models reachable
+
+SUBSTITUTED - every preferred model for these roles is blocked:
+  role 'review' (quality-first)
+    wanted: Claude Opus 5, Claude Opus 4.8, Claude Opus 4.7, GPT-6 Astra
+    using:  Claude Sonnet 5 (merit 4)
+```
+
+Substitution picks by the role's `cost_posture` - highest merit for
+`quality-first`, cheapest viable for `cheapest-viable` - and never picks an
+unscored model. It is a safety net, not a fix: when you see it, put a model you
+can reach into that role in `policy.json`.
+
+**If the top models are blocked for you**, the shortest path is to run reviews in
+Claude Code instead - it bills through your Claude subscription rather than
+Copilot, so an org restriction on Copilot models doesn't apply. Implement in
+Copilot, review in Claude Code, same agents on both sides. Full detail in
+[docs/availability.md](docs/availability.md).
+
+Availability is tracked per preset, so `work` and `personal` differ independently.
+
+---
+
 ## Keeping the model list current
 
-Copilot's catalogue changes often. The kit reads it from GitHub's own docs rather
-than hardcoding it:
+Copilot's catalogue changes every few weeks. The kit reads it from GitHub's own
+docs rather than hardcoding it.
+
+**Manually:**
 
 ```powershell
 .\scripts\refresh-models.ps1          # report what changed
@@ -187,10 +232,19 @@ than hardcoding it:
 The report tells you what is new, what changed price, what disappeared, and -
 importantly - whether `policy.json` still routes to a model that no longer exists.
 
-`-Apply` overwrites prices, vendors and release status. It never overwrites
-`merit`, `agent_mode` or `notes`: those are your editorial judgements, and a
-scraper should not silently replace your opinion of a model with a number off a
-web page. New models arrive with `merit: null` so they show up as needing review.
+**Automatically:** [`.github/workflows/refresh-models.yml`](.github/workflows/refresh-models.yml)
+runs the same check every Monday and opens a PR when anything moved. The PR body
+lists each new model with its price and tier and flags that it needs a merit
+score, so releases arrive as a reviewable diff instead of being noticed six months
+later. `workflow_dispatch` runs it on demand, with an option to report without
+committing.
+
+`-Apply` overwrites prices, vendors, category and release status. It never
+overwrites `merit`, `agent_mode` or `notes`: those are your editorial judgements,
+and a scraper should not silently replace your opinion of a model with a number
+off a web page. New models arrive with `merit: null`, and automatic substitution
+never picks an unscored model - so a model nobody has evaluated cannot quietly
+become your code reviewer.
 
 ---
 
@@ -256,6 +310,7 @@ premium model, and it certainly beats doing the whole job cheaply.
 ```
 registry/
   models.json       model catalogue: prices, tiers, merit scores
+  availability.json what your plan and org actually let you pick
   policy.json       roles -> models. The file you edit to change routing.
   agents/           agent sources, one per agent
 templates/
@@ -264,9 +319,11 @@ scripts/
   build.ps1           registry -> build/
   install.ps1         build/ -> Claude Code and Copilot
   refresh-models.ps1  GitHub docs -> registry/models.json
+  set-availability.ps1  record which models you can actually reach
 build/                generated; committed so a clone installs without building
 docs/
   routing.md          why the policy is what it is
+  availability.md     handling blocked models
   claude-setup.md     Claude Code and Claude Desktop walkthrough
   vscode-copilot-setup.md   VS Code + Copilot walkthrough
   MODELS.md           generated price and merit tables

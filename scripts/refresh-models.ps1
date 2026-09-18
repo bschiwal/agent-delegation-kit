@@ -150,7 +150,7 @@ function Get-PricingRows {
 function Format-JsonString {
     param([string]$Value)
     if ($null -eq $Value) { return 'null' }
-    $s = $Value -replace '\\', '\\\\'
+    $s = $Value -replace '\\', '\\'
     $s = $s -replace '"', '\"'
     $s = $s -replace "`r", '\r'
     $s = $s -replace "`n", '\n'

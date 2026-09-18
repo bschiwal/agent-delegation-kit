@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "_intent": "What you can ACTUALLY pick, which is rarely the whole catalogue. Org policy, plan tier and preview gating all remove models, and a role whose entire fallback chain is blocked resolves to whatever the host substitutes instead. Recording availability here lets the build drop unreachable models from every agent and warn when a role has nothing good left.",
+  "_how_to_fill": "Open VS Code, press Ctrl+Alt+. to show the model picker, and record exactly what it lists. Then run scripts/set-availability.ps1 -Preset work -Mode allow with -Models or -FromFile. There is no reliable API for this: entitlement depends on your plan and your admin's policy, so the picker is the only ground truth.",
+  "_modes": "all = no filtering, use the whole catalogue. allow = only the listed models exist for this profile. deny = everything except the listed models.",
+
+  "profiles": {
+    "personal": {
+      "mode": "all",
+      "models": [],
+      "verified_on": null,
+      "note": "Personal Copilot plan - assumed unrestricted until recorded otherwise."
+    },
+    "work": {
+      "mode": "all",
+      "models": [],
+      "verified_on": null,
+      "note": "NOT YET RECORDED. Until this is filled in, the work preset routes to models your org may have blocked. Run scripts/set-availability.ps1 -Preset work -Mode allow with what your VS Code model picker actually shows."
+    }
+  }
+}

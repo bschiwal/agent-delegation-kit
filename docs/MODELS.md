@@ -6,37 +6,39 @@ Catalogue verified **2026-09-17**. Prices are USD per 1M tokens under GitHub Cop
 
 `blended = 0.8 * input + 0.2 * output` - agent turns are input-heavy, so this ranks real spend better than headline output price.
 
-| Model | Vendor | In | Out | Blended | Tier | Merit | Agent mode |
-|---|---|---:|---:|---:|---|---:|---|
-| GPT-5.6 Luna | OpenAI | $0.20 | $1.20 | **0.40** | economy | 3 | yes |
-| MAI-Code-1.1-Flash | Microsoft | $0.20 | $1.20 | **0.40** | economy | 2.5 | yes |
-| GPT-5.4 nano | OpenAI | $0.20 | $1.25 | **0.41** | economy | 2 | unverified |
-| GPT-5 mini | OpenAI | $0.25 | $2.00 | **0.60** | economy | 2.5 | unverified |
-| Gemini 3.7 Flash | Google | $0.75 | $3.75 | **1.35** | standard | 3 | yes |
-| Gemini 3.8 Flash | Google | $0.75 | $3.75 | **1.35** | standard | 3 | unverified |
-| Gemini 3.6 Flash | Google | $0.75 | $3.75 | **1.35** | standard | 3 | yes |
-| GPT-5.4 mini | OpenAI | $0.75 | $4.50 | **1.50** | standard | 2.5 | unverified |
-| Kimi K2.7 Code | Moonshot AI | $0.95 | $4.00 | **1.56** | standard | 3 | unverified |
-| Claude Haiku 4.5 | Anthropic | $1.00 | $5.00 | **1.80** | standard | 3 | yes |
-| Grok 4.6 | xAI | $2.00 | $6.00 | **2.80** | standard | 3.5 | unverified |
-| Grok 4.5 | xAI | $2.00 | $6.00 | **2.80** | standard | 3.5 | unverified |
-| Gemini 3.5 Flash | Google | $1.50 | $9.00 | **3.00** | standard | 2.5 | unverified |
-| Claude Sonnet 5 | Anthropic | $2.00 | $10.00 | **3.60** | standard | 4 | yes |
-| GPT-5.6 Terra | OpenAI | $2.00 | $12.00 | **4.00** | premium | 4 | yes |
-| GPT-5.3-Codex | OpenAI | $1.75 | $14.00 | **4.20** | standard | 4 | yes |
-| GPT-5.4 | OpenAI | $2.50 | $15.00 | **5.00** | premium | 3.5 | **no** |
-| Claude Sonnet 4.6 | Anthropic | $3.00 | $15.00 | **5.40** | premium | 3.5 | **no** |
-| Claude Sonnet 4 | Anthropic | $3.00 | $15.00 | **5.40** | premium | 3 | unverified |
-| Kimi K3 | Moonshot AI | $3.00 | $15.00 | **5.40** | premium | 3.5 | unverified |
-| GPT-5.6 Sol | OpenAI | $4.00 | $20.00 | **7.20** | premium | 4.5 | yes |
-| Claude Opus 5 | Anthropic | $5.00 | $25.00 | **9.00** | premium | 5 | yes |
-| Claude Opus 4.7 | Anthropic | $5.00 | $25.00 | **9.00** | premium | 4 | yes |
-| Claude Opus 4.8 | Anthropic | $5.00 | $25.00 | **9.00** | premium | 4.5 | yes |
-| GPT-5.5 | OpenAI | $5.00 | $30.00 | **10.00** | premium | 4 | yes |
-| Claude Fable 5 | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 5 | unverified |
-| GPT-6 Astra | OpenAI | $10.00 | $50.00 | **18.00** | frontier | 5 | yes |
-| Claude Opus 4.8 (fast mode) | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 4.5 | yes |
-| Claude Fable 5.1 | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 5 | unverified |
+Availability for preset **personal** is unrestricted, so the whole catalogue is assumed reachable.
+
+| Model | Vendor | In | Out | Blended | Tier | Merit | Agent mode | Reachable |
+|---|---|---:|---:|---:|---|---:|---|---|
+| GPT-5.6 Luna | OpenAI | $0.20 | $1.20 | **0.40** | economy | 3 | yes | yes |
+| MAI-Code-1.1-Flash | Microsoft | $0.20 | $1.20 | **0.40** | economy | 2.5 | yes | yes |
+| GPT-5.4 nano | OpenAI | $0.20 | $1.25 | **0.41** | economy | 2 | unverified | yes |
+| GPT-5 mini | OpenAI | $0.25 | $2.00 | **0.60** | economy | 2.5 | unverified | yes |
+| Gemini 3.7 Flash | Google | $0.75 | $3.75 | **1.35** | standard | 3 | yes | yes |
+| Gemini 3.8 Flash | Google | $0.75 | $3.75 | **1.35** | standard | 3 | unverified | yes |
+| Gemini 3.6 Flash | Google | $0.75 | $3.75 | **1.35** | standard | 3 | yes | yes |
+| GPT-5.4 mini | OpenAI | $0.75 | $4.50 | **1.50** | standard | 2.5 | unverified | yes |
+| Kimi K2.7 Code | Moonshot AI | $0.95 | $4.00 | **1.56** | standard | 3 | unverified | yes |
+| Claude Haiku 4.5 | Anthropic | $1.00 | $5.00 | **1.80** | standard | 3 | yes | yes |
+| Grok 4.6 | xAI | $2.00 | $6.00 | **2.80** | standard | 3.5 | unverified | yes |
+| Grok 4.5 | xAI | $2.00 | $6.00 | **2.80** | standard | 3.5 | unverified | yes |
+| Gemini 3.5 Flash | Google | $1.50 | $9.00 | **3.00** | standard | 2.5 | unverified | yes |
+| Claude Sonnet 5 | Anthropic | $2.00 | $10.00 | **3.60** | standard | 4 | yes | yes |
+| GPT-5.6 Terra | OpenAI | $2.00 | $12.00 | **4.00** | premium | 4 | yes | yes |
+| GPT-5.3-Codex | OpenAI | $1.75 | $14.00 | **4.20** | standard | 4 | yes | yes |
+| GPT-5.4 | OpenAI | $2.50 | $15.00 | **5.00** | premium | 3.5 | **no** | yes |
+| Claude Sonnet 4.6 | Anthropic | $3.00 | $15.00 | **5.40** | premium | 3.5 | **no** | yes |
+| Claude Sonnet 4 | Anthropic | $3.00 | $15.00 | **5.40** | premium | 3 | unverified | yes |
+| Kimi K3 | Moonshot AI | $3.00 | $15.00 | **5.40** | premium | 3.5 | unverified | yes |
+| GPT-5.6 Sol | OpenAI | $4.00 | $20.00 | **7.20** | premium | 4.5 | yes | yes |
+| Claude Opus 5 | Anthropic | $5.00 | $25.00 | **9.00** | premium | 5 | yes | yes |
+| Claude Opus 4.7 | Anthropic | $5.00 | $25.00 | **9.00** | premium | 4 | yes | yes |
+| Claude Opus 4.8 | Anthropic | $5.00 | $25.00 | **9.00** | premium | 4.5 | yes | yes |
+| GPT-5.5 | OpenAI | $5.00 | $30.00 | **10.00** | premium | 4 | yes | yes |
+| Claude Fable 5 | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 5 | unverified | yes |
+| GPT-6 Astra | OpenAI | $10.00 | $50.00 | **18.00** | frontier | 5 | yes | yes |
+| Claude Opus 4.8 (fast mode) | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 4.5 | yes | yes |
+| Claude Fable 5.1 | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 5 | unverified | yes |
 
 ## Role routing
 
