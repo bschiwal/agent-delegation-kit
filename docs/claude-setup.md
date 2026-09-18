@@ -94,20 +94,40 @@ Note that VS Code's Copilot also reads `.claude/agents`, so a project-scope Clau
 install makes these agents visible in Copilot too - usually convenient, but worth
 knowing.
 
-## Routing rules for ad-hoc chat
+## Make every session a triage lead
 
-The agents carry their own models, so nothing more is needed for delegation. But if
-you want plain Claude Code chat to follow the same cost discipline - summarise
-before escalating, search rather than read whole files - add the routing
-instructions to your user memory:
+To have every new session delegate by default, without naming `triage-lead` each
+time:
 
 ```powershell
 .\scripts\install.ps1 -Target claude -WithInstructions
 ```
 
-That prints a single `@`-import line to add to `~\.claude\CLAUDE.md`. It does not
-edit that file for you, because it is yours and may already have content you care
-about.
+That copies the delegation policy to `~\.claude\agent-delegation.md` and adds one
+marked import block to `~\.claude\CLAUDE.md`:
+
+```
+<!-- agent-delegation-kit:begin -->
+@~/.claude/agent-delegation.md
+<!-- agent-delegation-kit:end -->
+```
+
+The install only ever adds or removes that block. Anything else in your
+`CLAUDE.md` is left alone, a reinstall does not add a second copy, and
+`-Uninstall` removes the block and the policy file.
+
+**Why instructions rather than `"agent": "triage-lead"` in settings.** Setting an
+agent as the default main session replaces Claude Code's built-in system prompt,
+limits the session to that agent's tools, and switches the session to that agent's
+model. For `triage-lead` that means Sonnet with no Bash, no Edit, no MCP servers
+and no skills in every project. The instructions route work the same way while the
+main session keeps Opus, all its tools, MCP, skills and memory. The specialist
+agents get no MCP access, so the policy tells the main session to keep MCP and
+skill work itself and delegate the recon before it and the review after it.
+
+If you want the strict version in one repo, put `{ "agent": "triage-lead" }` in
+that repo's `.claude\settings.json`. The Claude Code docs only show this at project
+scope, and don't say whether the VS Code extension honors it.
 
 ## Cost controls worth knowing
 

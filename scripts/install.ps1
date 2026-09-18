@@ -36,10 +36,11 @@
   Remove previously installed files instead of installing.
 
 .PARAMETER WithInstructions
-  Also install the always-on routing rules, so ad-hoc chat follows the cost
-  policy and not just the named agents. For Copilot this drops an
-  .instructions.md file in place; for Claude Code it prints the one line to add
-  to your CLAUDE.md rather than editing that file for you.
+  Also install the always-on rules. For Copilot: a model-routing
+  .instructions.md file. For Claude Code: agent-delegation.md next to CLAUDE.md,
+  plus a marked @import block in CLAUDE.md so every new session acts as triage
+  lead. Only that block is ever added or removed; the rest of CLAUDE.md is left
+  alone.
 
 .EXAMPLE
   .\scripts\install.ps1
@@ -98,9 +99,69 @@ if ($Target -eq 'copilot' -or $Target -eq 'both') {
     }
 }
 
+# --- Claude Code delegation instructions ---------------------------------------
+# The policy file is copied next to CLAUDE.md and pulled in with a single @import
+# inside a marked block. CLAUDE.md belongs to the user, so the kit only ever adds
+# or removes its own block and never rewrites anything else in the file.
+
+$claudeInstr = $null
+if (($Target -eq 'claude' -or $Target -eq 'both') -and ($WithInstructions -or $Uninstall)) {
+    if ($Scope -eq 'user') {
+        $claudeInstr = [pscustomobject]@{
+            PolicyFile = Join-Path $userHome '.claude\agent-delegation.md'
+            ClaudeMd   = Join-Path $userHome '.claude\CLAUDE.md'
+            Import     = '@~/.claude/agent-delegation.md'
+        }
+    }
+    else {
+        $claudeInstr = [pscustomobject]@{
+            PolicyFile = Join-Path $Path '.claude\agent-delegation.md'
+            ClaudeMd   = Join-Path $Path 'CLAUDE.md'
+            Import     = '@.claude/agent-delegation.md'
+        }
+    }
+}
+$blockBegin = '<!-- agent-delegation-kit:begin -->'
+$blockEnd   = '<!-- agent-delegation-kit:end -->'
+$policyMarker = 'Installed by agent-delegation-kit'
+
+function Remove-ClaudeInstructions {
+    param($Spec)
+    $removed = @()
+    if (Test-Path $Spec.ClaudeMd) {
+        $text = [System.IO.File]::ReadAllText($Spec.ClaudeMd)
+        $pattern = '(\r?\n)?' + [regex]::Escape($blockBegin) + '.*?' + [regex]::Escape($blockEnd) + '(\r?\n)?'
+        $new = [regex]::Replace($text, $pattern, "`n", 'Singleline')
+        if ($new -ne $text) {
+            if ([string]::IsNullOrWhiteSpace($new)) {
+                # The file only ever held our block - leave nothing behind.
+                Remove-Item $Spec.ClaudeMd -Force
+                $removed += "$($Spec.ClaudeMd) (only held the kit's import)"
+            }
+            else {
+                Write-Utf8NoBom $Spec.ClaudeMd ($new.TrimEnd() + "`n")
+                $removed += "import block from $($Spec.ClaudeMd)"
+            }
+        }
+    }
+    if (Test-Path $Spec.PolicyFile) {
+        # Only delete it if it is ours - never a same-named file the user wrote.
+        if ([System.IO.File]::ReadAllText($Spec.PolicyFile).Contains($policyMarker)) {
+            Remove-Item $Spec.PolicyFile -Force
+            $removed += $Spec.PolicyFile
+        }
+    }
+    return $removed
+}
+
 # --- uninstall ---------------------------------------------------------------
 
 if ($Uninstall) {
+    if ($null -ne $claudeInstr) {
+        foreach ($r in (Remove-ClaudeInstructions $claudeInstr)) {
+            Write-Host "Claude instructions: removed $r" -ForegroundColor Green
+        }
+    }
     $removedTotal = 0
     foreach ($p in $plans) {
         $manifestPath = Join-Path $p.Dest $manifestName
@@ -179,6 +240,40 @@ foreach ($p in $plans) {
     if ($stale.Count -gt 0) { Write-Host ", $($stale.Count) stale removed" } else { Write-Host '' }
 }
 
+if ($null -ne $claudeInstr) {
+    $src = Join-Path $repo 'templates\claude-delegation.md'
+    $ours = $true
+    if ((Test-Path $claudeInstr.PolicyFile) -and -not $Force) {
+        $ours = [System.IO.File]::ReadAllText($claudeInstr.PolicyFile).Contains($policyMarker)
+    }
+    if (-not $ours) {
+        $blocked += $claudeInstr.PolicyFile
+    }
+    else {
+        $dir = Split-Path $claudeInstr.PolicyFile -Parent
+        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        Write-Utf8NoBom $claudeInstr.PolicyFile ([System.IO.File]::ReadAllText($src))
+
+        $block = "$blockBegin`n$($claudeInstr.Import)`n$blockEnd"
+        if (-not (Test-Path $claudeInstr.ClaudeMd)) {
+            Write-Utf8NoBom $claudeInstr.ClaudeMd ($block + "`n")
+            $mdAction = 'created'
+        }
+        else {
+            $existing = [System.IO.File]::ReadAllText($claudeInstr.ClaudeMd)
+            if ($existing.Contains($blockBegin)) {
+                $mdAction = 'already imports it'
+            }
+            else {
+                Write-Utf8NoBom $claudeInstr.ClaudeMd ($existing.TrimEnd() + "`n`n" + $block + "`n")
+                $mdAction = 'import appended'
+            }
+        }
+        Write-Host "Claude instructions -> $($claudeInstr.PolicyFile)" -ForegroundColor Green
+        Write-Host "  $($claudeInstr.ClaudeMd): $mdAction"
+    }
+}
+
 if ($blocked.Count -gt 0) {
     Write-Host ''
     Write-Host 'Skipped - a file not installed by this kit is already there:' -ForegroundColor Yellow
@@ -195,15 +290,8 @@ if ($Target -eq 'claude' -or $Target -eq 'both') {
 if ($Target -eq 'copilot' -or $Target -eq 'both') {
     Write-Host '  VS Code     : reload the window, then open Chat and pick an agent from the dropdown.'
 }
-if ($WithInstructions -and ($Target -eq 'claude' -or $Target -eq 'both')) {
-    # Claude Code's always-on context is CLAUDE.md, which is yours - appending to
-    # it automatically risks clobbering your own notes, so this only tells you the
-    # one line to add.
-    $instrFile = Join-Path $repo 'build\instructions\model-routing.instructions.md'
-    Write-Host ''
-    Write-Host '  To apply the routing rules to Claude Code chat as well, add this line to'
-    Write-Host "  $(Join-Path $userHome '.claude\CLAUDE.md') :"
-    Write-Host "      @$instrFile" -ForegroundColor White
-    Write-Host '  (the agents already carry their own models - this is only for ad-hoc chat)'
+if ($null -ne $claudeInstr) {
+    Write-Host '                New sessions now act as triage lead by default: they delegate'
+    Write-Host '                to the specialists and keep Opus, MCP, skills and memory.'
 }
 Write-Host ''

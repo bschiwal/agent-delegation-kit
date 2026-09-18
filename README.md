@@ -49,7 +49,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | `.\scripts\install.ps1 -Target claude` | Claude Code only |
 | `.\scripts\install.ps1 -Target copilot` | Copilot only |
 | `.\scripts\install.ps1 -Preset work` | Apply the workplace model policy (see below) |
-| `.\scripts\install.ps1 -WithInstructions` | Also install the always-on routing rules for ad-hoc chat |
+| `.\scripts\install.ps1 -WithInstructions` | Also make every Claude Code session delegate like `triage-lead`, and install Copilot routing rules |
 | `.\scripts\install.ps1 -Scope project -Path C:\repos\my-app` | Install into one repo, to commit and share with a team |
 | `.\scripts\install.ps1 -Uninstall` | Remove everything this kit installed |
 
@@ -116,10 +116,12 @@ request - the deep reasoning happens in the Opus agents it calls.
 `delegation-router` is the plan-only version: it returns the same plan and runs
 nothing. Use it when you want to see or adjust the plan before any work starts.
 
-To make `triage-lead` the front door for every Claude Code session, set
-`"agent": "triage-lead"` in `~\.claude\settings.json`, or start the CLI with
-`claude --agent triage-lead`. That applies to *every* project, so try it per task
-first.
+To make every new session behave as the triage lead without naming it, install
+with `-WithInstructions`. That adds the delegation policy through one marked
+import block in `~\.claude\CLAUDE.md`, and the session keeps Opus, MCP, skills and
+memory. Don't set `"agent": "triage-lead"` in your user settings: that replaces
+the system prompt and limits every session to `triage-lead`'s tools and model. See
+[docs/claude-setup.md](docs/claude-setup.md#make-every-session-a-triage-lead).
 
 ### GitHub Copilot (VS Code)
 
