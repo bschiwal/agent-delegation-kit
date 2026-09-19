@@ -68,6 +68,7 @@ Built with profile **personal**.
 | doc-writer | write-prose | haiku | GPT-5.6 Luna |
 | implementer | implement | sonnet | Claude Sonnet 5 |
 | log-triager | summarize | haiku | GPT-5.6 Luna |
+| pbir-builder | implement | sonnet | Claude Sonnet 5 |
 | pr-scribe | write-prose | haiku | GPT-5.6 Luna |
 | repo-scout | search | haiku | GPT-5.6 Luna |
 | security-reviewer | review | opus | Claude Opus 5 |

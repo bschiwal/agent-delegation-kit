@@ -6,7 +6,7 @@
   "claude": {
     "tools": "Read, Write, Edit, Grep, Glob, Bash",
     "permissionMode": "acceptEdits",
-    "maxTurns": 40,
+    "maxTurns": 25,
     "color": "cyan"
   },
   "copilot": {

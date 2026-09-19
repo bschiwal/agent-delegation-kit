@@ -7,7 +7,7 @@
     "tools": "Read, Edit, Write, Grep, Glob, Bash",
     "permissionMode": "acceptEdits",
     "effort": "low",
-    "maxTurns": 40,
+    "maxTurns": 30,
     "omitClaudeMd": true,
     "color": "pink"
   },

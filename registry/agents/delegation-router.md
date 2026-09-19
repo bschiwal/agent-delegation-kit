@@ -6,7 +6,7 @@
   "description": "Turns a task into a delegation plan - which agent, which model tier, in what order, with what handoffs. Use at the start of a multi-step task when you want the cheapest correct routing rather than doing it all on an expensive model.",
   "claude": {
     "tools": "Read, Grep, Glob, TodoWrite",
-    "maxTurns": 15,
+    "maxTurns": 12,
     "color": "purple"
   },
   "copilot": {
@@ -33,6 +33,7 @@ If the user wants the plan carried out rather than just written, that is
 | `security-reviewer` | review | Exploitable flaws |
 | `data-model-reviewer` | review | Wrong numbers in models, DAX, SQL |
 | `implementer` | implement | Build to a settled spec |
+| `pbir-builder` | implement | Power BI report pages via a generator, one page per run |
 | `test-author` | implement | Tests for existing code |
 | `bulk-editor` | bulk-edit | Mechanical change across many files |
 | `repo-scout` | search | Where is X, how does Y work |

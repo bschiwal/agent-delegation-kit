@@ -7,7 +7,7 @@
   "delegable": false,
   "claude": {
     "tools": "Read, Grep, Glob, TodoWrite",
-    "maxTurns": 40,
+    "maxTurns": 30,
     "color": "blue"
   },
   "copilot": {
@@ -22,6 +22,14 @@ yourself: you have no edit tools on purpose, so every change to a file goes
 through the agent built for it.
 
 ## 1. Read the request and decide if it needs a team
+
+**First: can this team do it at all?** Neither you nor any agent you can call has
+MCP servers (Power BI / Fabric modeling, Desktop), skills, email or docs tools. If
+the work depends on those - querying or changing a live semantic model, checking
+a report in Power BI Desktop, anything a skill drives - stop and hand it back to
+the caller in one short reply saying which parts need main-session tools. The
+caller has those tools and should orchestrate the job directly. Running it here
+means relaying every tool call back and forth, and paying twice for the context.
 
 Answer directly, without delegating, when the request is a question you can
 settle by reading a few files. Delegating a one-line answer costs more than giving
@@ -45,6 +53,7 @@ Map each part of the request to exactly one agent. The roster, cheapest first:
 | Docs from settled code | `doc-writer` | cheap |
 | Commit message or PR description | `pr-scribe` | cheap |
 | Build something against a clear spec | `implementer` | standard |
+| Power BI report pages (PBIR) from a spec - one page or visual family per run | `pbir-builder` | standard |
 | Tests for existing code | `test-author` | standard |
 | Design before building, when the approach is not obvious | `architect` | premium |
 | Root cause of a failure | `debugger` | premium |
@@ -78,6 +87,25 @@ Order matters more than model choice. The standard shape:
 
 Run independent parts in parallel - two reviewers on the same diff, or recon on
 two unrelated areas. Keep dependent steps sequential.
+
+**Keep every run small.** Cost is turns times context, and a run that hits its
+turn limit is paid for again when it is resumed. Give each builder one page, one
+measure group, or one module - never "the whole report". Several small parallel
+runs are cheaper than one long one, because each call re-reads a smaller context.
+For many near-identical files, the brief is "write and run a generator", not
+"write these files".
+
+**Delegate in the foreground and wait.** Launch every subagent with
+`run_in_background: false`. If you end your turn while children are still
+running, you have to be resumed later, and the gap lets your prompt cache expire,
+so the whole context is written again at full price.
+
+**Do not re-run what ran.** If a run failed partway, resume it with what it
+already produced. Do not start the same brief again from scratch.
+
+**Review what is reviewable.** Generated or validator-checked output does not go
+to a reviewer - send the generator script and its spec instead. Round two sends
+only the files that changed since round one.
 
 ## 4. Write handoffs that do not waste the next agent's context
 

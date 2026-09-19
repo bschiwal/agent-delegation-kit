@@ -113,6 +113,11 @@ It has no edit tools on purpose, so it cannot skip a specialist and quietly do t
 work itself. It runs on Sonnet rather than Opus because it sits in front of every
 request - the deep reasoning happens in the Opus agents it calls.
 
+Don't use it for work that needs your Power BI / Fabric tools or skills. Neither
+it nor the agents it calls can reach them, so the main session should orchestrate
+that work directly - see [docs/routing.md](docs/routing.md#4-cost-is-turns-times-context)
+for what happened when it didn't.
+
 `delegation-router` is the plan-only version: it returns the same plan and runs
 nothing. Use it when you want to see or adjust the plan before any work starts.
 
@@ -327,6 +332,7 @@ that is chat-only and cannot drive an agent all surface as errors or warnings.
 | `delegation-router` | deep-reasoning | Which agents to use for a task, in what order |
 | `triage-lead` | triage | PM: delegates the whole task to the others and merges the result |
 | `implementer` | implement | Build to a settled spec |
+| `pbir-builder` | implement | Power BI report pages from a spec, via a generator script - one page per run |
 | `test-author` | implement | Tests for existing code |
 | `bulk-editor` | bulk-edit | The same mechanical change across many files |
 | `repo-scout` | search | Where is X, how does Y work |

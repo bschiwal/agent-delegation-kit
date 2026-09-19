@@ -5,7 +5,7 @@
   "description": "Finds the root cause of a failing test, exception or wrong output. Use when the cause is not obvious from the error message, or when a previous cheap attempt at a fix did not hold. Diagnoses and fixes.",
   "claude": {
     "tools": "Read, Grep, Glob, Bash, Edit, Write, TodoWrite",
-    "maxTurns": 50,
+    "maxTurns": 30,
     "color": "yellow"
   },
   "copilot": {

@@ -7,7 +7,7 @@ and everything else gets the cheapest model that can finish the job.
 This document explains the reasoning so you can disagree with it deliberately
 rather than by accident.
 
-## The four principles
+## The five principles
 
 ### 1. Reviewing is where quality pays for itself
 
@@ -87,7 +87,30 @@ Some models are both worse and pricier than an alternative. These are flagged in
 - **GPT-5.5** (10.00) - costs more than Opus 5 at lower merit.
 - **Grok 4.5** - superseded by 4.6 at identical price.
 
-### 4. Fewer tokens beats a cheaper model
+### 4. Cost is turns times context
+
+Every API call re-reads the calling agent's whole context. A subagent that runs
+50 turns over an 80K-token context costs about 4M tokens, whatever it produces,
+and a run cut off at its turn limit gets paid for again when it is resumed.
+
+This was learned the expensive way. On 2026-09-18 one Power BI report build used
+56M tokens across 22 agent runs, which was a full 5-hour usage window plus $25.
+93% of it was cache re-reads. The audit's findings, and what changed because of
+them:
+
+| Finding | Change |
+|---|---|
+| 9 of 22 runs stopped exactly at `maxTurns` and had to be resumed or re-run | Lower caps (implementer 50 -> 25, reviewers 30 -> 20), plus a generated turn-budget footer on every agent: hand back partial results at 75% |
+| Implementers edited PBIR JSON one visual per turn: 11 runs, 30M tokens | `pbir-builder`: one page per run, writes and runs a generator, validates with the CLI, preloads the report-authoring skill |
+| `triage-lead` sat under an Opus main session that already orchestrated, couldn't reach the Power BI tools, and stopped with background children still running | The main-session policy never hands off to `triage-lead`; `triage-lead` hands back MCP-dependent work and delegates in the foreground only |
+| 8 reviewer runs on Opus `xhigh` cost 10.5M, including a full re-review and a review of already-validated JSON | Review effort `xhigh` -> `high`; each reviewer prompt says to review only named files, only the changes on round two, never generated output, and to stay in its own area |
+| The architect returned a 5K-word plan as text, which was written to disk again and then carried in the main context | The architect writes `.claude/plans/<task>.md` early and replies with the path plus 10 lines |
+
+The model routing was never the problem. Each agent ran the
+model it was meant to. The problem was how many turns each run took, over how much
+context.
+
+### 5. Fewer tokens beats a cheaper model
 
 Substituting a model changes the price per token by maybe 5x. Cutting the context
 in half cuts the bill in half *and* usually improves the answer. The second lever

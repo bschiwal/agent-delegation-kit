@@ -14,7 +14,7 @@
     "review": {
       "intent": "Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens.",
       "cost_posture": "quality-first",
-      "claude": { "model": "opus", "effort": "xhigh" },
+      "claude": { "model": "opus", "effort": "high" },
       "copilot": ["Claude Opus 5", "Claude Opus 4.8", "Claude Opus 4.7", "GPT-6 Astra"],
       "rationale": "Opus 5 is the top merit score in the catalogue and the owner prefers Claude reasoning and output. GPT-6 Astra is the only non-Claude fallback rated equal on merit, so it sits last as an availability backstop rather than a cost saving - it costs 2x Opus 5."
     },

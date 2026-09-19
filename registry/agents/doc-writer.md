@@ -7,7 +7,7 @@
     "tools": "Read, Write, Edit, Grep, Glob",
     "permissionMode": "acceptEdits",
     "effort": "low",
-    "maxTurns": 30,
+    "maxTurns": 20,
     "color": "blue"
   },
   "copilot": {

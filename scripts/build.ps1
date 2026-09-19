@@ -209,6 +209,42 @@ foreach ($src in $sources) { $parsed += (Read-AgentSource $src.FullName) }
 $delegableNames = @($parsed | Where-Object { $_.Meta.delegable -ne $false } | ForEach-Object { $_.Meta.name } | Sort-Object)
 $allNames = @($parsed | ForEach-Object { $_.Meta.name })
 
+function Get-BudgetFooter {
+    # Appended to every agent. A run's cost is turns x context, and a run cut off at
+    # maxTurns loses its unreported work and gets paid for again on the re-run -
+    # 9 of 22 runs in the 2026-09-18 audit ended exactly that way. So every agent
+    # is told its budget and to hand back partial results before the hard stop.
+    param($MaxTurns)
+    $lines = @('', '## Turn budget', '')
+    if ($null -ne $MaxTurns) {
+        $wrap = [math]::Max(1, [math]::Floor([int]$MaxTurns * 0.75))
+        $lines += "You have at most **$MaxTurns turns**, and every turn re-reads your whole"
+        $lines += 'context - turns are the main cost of this run. By about **turn ' + $wrap + '**, stop'
+        $lines += 'starting new work: finish or back out the step in progress, then hand back'
+    }
+    else {
+        $lines += 'Every turn re-reads your whole context, so turns are the main cost of this'
+        $lines += 'run. Well before you run out, stop starting new work: finish or back out'
+        $lines += 'the step in progress, then hand back'
+    }
+    $lines += 'what is done, what is left, and exactly where to resume. A run cut off at the'
+    $lines += 'limit loses everything it had not yet reported and has to be paid for again.'
+    $lines += ''
+    $lines += 'Spend turns carefully:'
+    $lines += ''
+    $lines += '- Do several independent things per turn - read three files at once, make'
+    $lines += '  related edits together.'
+    $lines += '- For many similar files or edits, write and run one script instead of one'
+    $lines += '  edit per turn.'
+    $lines += '- Read line ranges and grep with context, not whole files you only need a'
+    $lines += '  slice of.'
+    $lines += '- If the task is plainly too big for your budget, say so at the start and'
+    $lines += '  propose a split instead of starting a run you cannot finish.'
+    $lines += '- If you delegate, launch subagents in the foreground (run_in_background:'
+    $lines += '  false) and wait for them - do not end your turn while children still run.'
+    return ($lines -join "`n") + "`n"
+}
+
 function Get-DelegateList {
     # "delegates": "*" means every delegable agent except itself; an array names
     # them explicitly and is validated so a typo cannot silently shrink the team.
@@ -261,7 +297,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $claudeExtra.Keys) { $lines += "${k}: $(Format-YamlValue $claudeExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $claudeText = ($lines -join "`n") + "`n" + $agent.Body
+    $claudeText = ($lines -join "`n") + "`n" + $agent.Body + (Get-BudgetFooter $meta.claude.maxTurns)
     Write-Utf8NoBom (Join-Path $claudeOut "$($meta.name).md") $claudeText
 
     # ---- Copilot output ----
@@ -324,7 +360,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $copilotExtra.Keys) { $lines += "${k}: $(Format-YamlValue $copilotExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $copilotText = ($lines -join "`n") + "`n" + $agent.Body
+    $copilotText = ($lines -join "`n") + "`n" + $agent.Body + (Get-BudgetFooter $null)
     Write-Utf8NoBom (Join-Path $copilotOut "$($meta.name).agent.md") $copilotText
 
     $summary += [pscustomobject]@{

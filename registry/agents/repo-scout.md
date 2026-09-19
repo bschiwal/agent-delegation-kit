@@ -6,7 +6,7 @@
   "claude": {
     "tools": "Read, Grep, Glob, Bash",
     "effort": "low",
-    "maxTurns": 25,
+    "maxTurns": 15,
     "omitClaudeMd": true,
     "color": "cyan"
   },
