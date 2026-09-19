@@ -43,12 +43,17 @@ param(
     [ValidateSet('all', 'allow', 'deny')] [string]$Mode,
     [string[]]$Models,
     [string]$FromFile,
-    [switch]$List
+    [switch]$List,
+    # Read and write registry/availability.local.json (gitignored) instead of the
+    # public file. Use it for an employer's model list.
+    [switch]$Local
 )
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
-$availPath = Join-Path $repo 'registry\availability.json'
+$publicAvailPath = Join-Path $repo 'registry\availability.json'
+$availPath = $publicAvailPath
+if ($Local) { $availPath = Join-Path $repo 'registry\availability.local.json' }
 $modelsPath = Join-Path $repo 'registry\models.json'
 $policyPath = Join-Path $repo 'registry\policy.json'
 
@@ -73,7 +78,20 @@ function Get-Normalized {
 }
 
 $catalogue = Get-Content $modelsPath -Raw | ConvertFrom-Json
-$avail     = Get-Content $availPath -Raw | ConvertFrom-Json
+$public = Get-Content $publicAvailPath -Raw | ConvertFrom-Json
+if (Test-Path $availPath) { $avail = Get-Content $availPath -Raw | ConvertFrom-Json }
+else {
+    # First -Local write: start from an empty profile set.
+    $avail = [pscustomobject]@{ profiles = [pscustomobject]@{} }
+}
+# The explanatory fields come from the public file, so a local file stays readable.
+foreach ($k in '_intent', '_how_to_fill', '_modes') {
+    if ($null -eq $avail.$k) { $avail | Add-Member -NotePropertyName $k -NotePropertyValue $public.$k -Force }
+}
+# Make sure the preset being written has a profile to write into.
+if ($Preset -and $null -eq $avail.profiles.$Preset) {
+    $avail.profiles | Add-Member -NotePropertyName $Preset -NotePropertyValue ([pscustomobject]@{ mode = 'all'; models = @(); verified_on = $null; note = $null })
+}
 $policy    = Get-Content $policyPath -Raw | ConvertFrom-Json
 
 # --- list mode ---------------------------------------------------------------

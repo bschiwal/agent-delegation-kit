@@ -20,23 +20,11 @@ there. Everything else runs on the cheapest model that can finish the job.
 
 ## Cheap is measured, not assumed
 
-Per 1M tokens, blended as `0.8 x input + 0.2 x output` (agent turns are
-input-heavy):
-
 <!-- BEGIN:cost-list -->
 <!-- END:cost-list -->
 
-Two consequences that trip people up:
-
-1. **Claude Sonnet 5 is cheaper than GPT-5.4, GPT-5.5, GPT-5.6 Sol and Gemini
-   3.5 Flash.** Swapping Sonnet 5 out "to save money" in favour of one of those
-   costs more, not less. The old advice to avoid Sonnet was written against
-   Sonnet 4 at $3/$15; Sonnet 5 is $2/$10.
-2. **Claude Opus 5 is cheaper than GPT-5.5 and GPT-6 Astra.** If the work genuinely
-   needs a frontier model, Opus 5 is the economical frontier choice.
-
-Never pick a model that is both worse and pricier than an alternative. Claude
-Sonnet 4.6, Gemini 3.5 Flash and GPT-5.5 are all dominated by something cheaper.
+<!-- BEGIN:cost-notes -->
+<!-- END:cost-notes -->
 
 ## Fewer tokens beats a cheaper model
 

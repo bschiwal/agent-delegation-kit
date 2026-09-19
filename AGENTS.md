@@ -26,6 +26,7 @@ warns.
 | Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
 | An agent can't see its MCP tools on some machine | `registry/mcp.json` - the server's name on that platform |
+| Apply an employer's model policy | `registry/policy.local.json` (gitignored; copy the `.example`) - never `policy.json`, which is public |
 
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
 up locally.
@@ -80,6 +81,14 @@ documents. With `"copilot": "tools"` it gets single tools, which is narrower (th
 reviewer gets only read-only DAX). VS Code silently ignores tools it can't
 resolve, so write prompts that notice a missing tool and say so, rather than
 assuming it's there.
+
+**Local overrides.** `registry/policy.local.json` and `registry/availability.local.json` are
+gitignored and override the matching preset. A build that uses either one writes to
+`build/local/` (also gitignored) and records that in `build/last-build.json`, which
+`install.ps1` reads. That separation is the protection: `build/` and `docs/MODELS.md`
+are committed, so private policy must never be built into them. Before committing
+after a work build, run a plain `.scriptsuild.ps1` so the committed output is the
+public default.
 
 **Platform-specific text** goes inside `<!-- IF:claude -->` ... `<!-- ENDIF -->`
 or `<!-- IF:copilot -->` ... `<!-- ENDIF -->`. Use it only where the platforms

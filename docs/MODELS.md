@@ -47,6 +47,7 @@ Built with profile **personal**.
 | Role | Claude Code | Copilot (first choice) | Posture |
 |---|---|---|---|
 | review | opus | Claude Opus 5 | quality-first |
+| review-critical | opus | Claude Opus 5 | quality-first |
 | deep-reasoning | opus | Claude Opus 5 | quality-first |
 | triage | sonnet | Claude Sonnet 5 | balanced |
 | implement | sonnet | Claude Sonnet 5 | balanced |
@@ -62,7 +63,7 @@ Built with profile **personal**.
 | architect | deep-reasoning | opus | Claude Opus 5 |
 | bulk-editor | bulk-edit | haiku | MAI-Code-1.1-Flash |
 | code-reviewer | review | opus | Claude Opus 5 |
-| data-model-reviewer | review | opus | Claude Opus 5 |
+| data-model-reviewer | review-critical | opus | Claude Opus 5 |
 | debugger | deep-reasoning | opus | Claude Opus 5 |
 | doc-writer | write-prose | haiku | GPT-5.6 Luna |
 | implementer | implement | sonnet | Claude Sonnet 5 |
@@ -71,7 +72,7 @@ Built with profile **personal**.
 | pbir-builder | implement | sonnet | Claude Sonnet 5 |
 | pr-scribe | write-prose | haiku | GPT-5.6 Luna |
 | repo-scout | search | haiku | GPT-5.6 Luna |
-| security-reviewer | review | opus | Claude Opus 5 |
+| security-reviewer | review-critical | opus | Claude Opus 5 |
 | test-author | implement | sonnet | Claude Sonnet 5 |
 | triage-lead | triage | sonnet | Claude Sonnet 5 |
 

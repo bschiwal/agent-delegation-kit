@@ -1,7 +1,7 @@
 ---
 {
   "name": "security-reviewer",
-  "role": "review",
+  "role": "review-critical",
   "when": "Review a change touching credentials, user input, file paths or network calls",
   "description": "Audits changed code for exploitable security flaws - injection, authz gaps, secret exposure, unsafe deserialization, SSRF. Use before shipping anything that touches auth, user input, file paths, network calls or credentials. Read-only.",
   "claude": {

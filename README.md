@@ -48,7 +48,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | `.\scripts\install.ps1` | Both platforms, user-wide |
 | `.\scripts\install.ps1 -Target claude` | Claude Code only |
 | `.\scripts\install.ps1 -Target copilot` | Copilot only |
-| `.\scripts\install.ps1 -Preset work` | Apply the workplace model policy (see below) |
+| `.\scripts\install.ps1 -Preset work` | Apply the workplace model policy - your organization's version lives in the gitignored `registry/policy.local.json` (see [docs/vscode-copilot-setup.md](docs/vscode-copilot-setup.md#your-organizations-model-policy-local-files)) |
 | `.\scripts\install.ps1 -WithInstructions` | **Recommended.** Every Claude Code session orchestrates the agents itself (no need to name them); also installs Copilot model-routing rules |
 | `.\scripts\install.ps1 -Scope project -Path C:\repos\my-app` | Install into one repo, to commit and share with a team |
 | `.\scripts\install.ps1 -Uninstall` | Remove everything this kit installed |
@@ -157,6 +157,7 @@ policy once and every agent follows on the next build.
 | Role | Claude Code | Copilot | Why |
 |---|---|---|---|
 | `review` | `opus` | Claude Opus 5 | Quality first. A missed bug costs more than the tokens. |
+| `review-critical` | `opus` | Claude Opus 5 | Data-model and security review. Same as `review` by default; a separate tier so a cost-constrained preset can keep a strong model where a miss is costly. |
 | `deep-reasoning` | `opus` | Claude Opus 5 | A bad plan is paid for by every agent downstream. |
 | `triage` | `sonnet` | Claude Sonnet 5 | Runs in front of every request, so it must be cheap; delegates the deep thinking. |
 | `implement` | `sonnet` | Claude Sonnet 5 | Best merit-per-dollar in the standard tier. |

@@ -15,6 +15,7 @@ Regenerate from `registry/policy.json`; do not hand-edit this file.
 | Kind of work | Model |
 |---|---|
 | Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens. | **Claude Opus 5** (fall back: Claude Opus 4.8, Claude Opus 4.7, GPT-6 Astra) |
+| Review where a miss is costly: numbers that reach a client or decision-maker, security-sensitive changes. | **Claude Opus 5** (fall back: Claude Opus 4.8, Claude Opus 4.7, GPT-6 Astra) |
 | Planning, architecture design, tricky debugging, ambiguous tradeoffs. | **Claude Opus 5** (fall back: Claude Opus 4.8, GPT-5.6 Sol) |
 | Front door for a request: classify it, route each part to a specialist agent, sequence the handoffs, merge the results. | **Claude Sonnet 5** (fall back: GPT-5.3-Codex, Gemini 3.7 Flash) |
 | Write real code against a clear spec. Needs competence, not brilliance. | **Claude Sonnet 5** (fall back: GPT-5.3-Codex, Gemini 3.7 Flash) |
@@ -30,10 +31,10 @@ there. Everything else runs on the cheapest model that can finish the job.
 
 ## Cheap is measured, not assumed
 
-Per 1M tokens, blended as `0.8 x input + 0.2 x output` (agent turns are
-input-heavy):
-
 <!-- BEGIN:cost-list -->
+List price per 1M tokens, blended as `0.8 x input + 0.2 x output` (agent turns
+are input-heavy). Real billing can differ from list price - measure yours:
+
 - GPT-5.6 Luna - **0.40**
 - MAI-Code-1.1-Flash - **0.40**
 - Gemini 3.7 Flash - **1.35**
@@ -47,17 +48,11 @@ input-heavy):
 - GPT-6 Astra - **18.00**
 <!-- END:cost-list -->
 
-Two consequences that trip people up:
-
-1. **Claude Sonnet 5 is cheaper than GPT-5.4, GPT-5.5, GPT-5.6 Sol and Gemini
-   3.5 Flash.** Swapping Sonnet 5 out "to save money" in favour of one of those
-   costs more, not less. The old advice to avoid Sonnet was written against
-   Sonnet 4 at $3/$15; Sonnet 5 is $2/$10.
-2. **Claude Opus 5 is cheaper than GPT-5.5 and GPT-6 Astra.** If the work genuinely
-   needs a frontier model, Opus 5 is the economical frontier choice.
-
-Never pick a model that is both worse and pricier than an alternative. Claude
-Sonnet 4.6, Gemini 3.5 Flash and GPT-5.5 are all dominated by something cheaper.
+<!-- BEGIN:cost-notes -->
+- At list price, Claude Sonnet 5 ($2/$10) undercuts GPT-5.4, GPT-5.5 and GPT-5.6 Sol, and Claude Opus 5 undercuts GPT-5.5 and GPT-6 Astra - so swapping a Claude model for one of those can raise the bill.
+- Real billing can rank models differently from list price: a model that writes less or reads less context per task costs less in practice. Where you have billing data, supply measured figures through registry/policy.local.json and route on those.
+- Never pick a model that is both worse and pricier than an alternative - models.json flags the dominated ones.
+<!-- END:cost-notes -->
 
 ## Fewer tokens beats a cheaper model
 

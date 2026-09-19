@@ -10,6 +10,12 @@
     "Never pick a model that is dominated - worse AND pricier than an alternative. models.json flags these in notes."
   ],
 
+  "cost_notes": [
+    "At list price, Claude Sonnet 5 ($2/$10) undercuts GPT-5.4, GPT-5.5 and GPT-5.6 Sol, and Claude Opus 5 undercuts GPT-5.5 and GPT-6 Astra - so swapping a Claude model for one of those can raise the bill.",
+    "Real billing can rank models differently from list price: a model that writes less or reads less context per task costs less in practice. Where you have billing data, supply measured figures through registry/policy.local.json and route on those.",
+    "Never pick a model that is both worse and pricier than an alternative - models.json flags the dominated ones."
+  ],
+
   "roles": {
     "review": {
       "intent": "Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens.",
@@ -17,6 +23,13 @@
       "claude": { "model": "opus", "effort": "high" },
       "copilot": ["Claude Opus 5", "Claude Opus 4.8", "Claude Opus 4.7", "GPT-6 Astra"],
       "rationale": "Opus 5 is the top merit score in the catalogue and the owner prefers Claude reasoning and output. GPT-6 Astra is the only non-Claude fallback rated equal on merit, so it sits last as an availability backstop rather than a cost saving - it costs 2x Opus 5."
+    },
+    "review-critical": {
+      "intent": "Review where a miss is costly: numbers that reach a client or decision-maker, security-sensitive changes.",
+      "cost_posture": "quality-first",
+      "claude": { "model": "opus", "effort": "high" },
+      "copilot": ["Claude Opus 5", "Claude Opus 4.8", "Claude Opus 4.7", "GPT-6 Astra"],
+      "rationale": "Identical to review by default. It exists as a separate tier so a cost-constrained preset can keep a strong model on the reviews where a miss is expensive (data-model-reviewer, security-reviewer) while moving routine code review to a cheaper model."
     },
     "deep-reasoning": {
       "intent": "Planning, architecture design, tricky debugging, ambiguous tradeoffs.",

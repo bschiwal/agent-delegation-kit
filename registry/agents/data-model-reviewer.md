@@ -1,7 +1,7 @@
 ---
 {
   "name": "data-model-reviewer",
-  "role": "review",
+  "role": "review-critical",
   "when": "Review DAX, TMDL, semantic model, SQL or pipeline changes - anything producing a number",
   "description": "Reviews semantic models, DAX, SQL and pipeline logic for wrong numbers - bad grain, non-additive measures summed, broken relationships, silent filter-context bugs. Use on Power BI/Fabric models, warehouse SQL and transformation code. Read-only.",
   "claude": {

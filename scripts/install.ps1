@@ -83,19 +83,19 @@ $plans = @()
 if ($Target -eq 'claude' -or $Target -eq 'both') {
     if ($Scope -eq 'user') { $dest = Join-Path $userHome '.claude\agents' }
     else { $dest = Join-Path $Path '.claude\agents' }
-    $plans += [pscustomobject]@{ Name = 'Claude Code'; Source = Join-Path $repo 'build\claude\agents'; Dest = $dest; Filter = '*.md' }
+    $plans += [pscustomobject]@{ Name = 'Claude Code'; Source = 'claude\agents'; Dest = $dest; Filter = '*.md' }
 }
 if ($Target -eq 'copilot' -or $Target -eq 'both') {
     if ($Scope -eq 'user') { $dest = Join-Path $userHome '.copilot\agents' }
     else { $dest = Join-Path $Path '.github\agents' }
-    $plans += [pscustomobject]@{ Name = 'GitHub Copilot'; Source = Join-Path $repo 'build\copilot\agents'; Dest = $dest; Filter = '*.agent.md' }
+    $plans += [pscustomobject]@{ Name = 'GitHub Copilot'; Source = 'copilot\agents'; Dest = $dest; Filter = '*.agent.md' }
 
     if ($WithInstructions -or $Uninstall) {
         # Always-on routing rules, so ad-hoc chat follows the cost policy too and
         # not only the named agents. Included on uninstall so they get cleaned up.
         if ($Scope -eq 'user') { $idest = Join-Path $userHome '.copilot\instructions' }
         else { $idest = Join-Path $Path '.github\instructions' }
-        $plans += [pscustomobject]@{ Name = 'Copilot instructions'; Source = Join-Path $repo 'build\instructions'; Dest = $idest; Filter = '*.instructions.md' }
+        $plans += [pscustomobject]@{ Name = 'Copilot instructions'; Source = 'instructions'; Dest = $idest; Filter = '*.instructions.md' }
     }
 }
 
@@ -209,12 +209,25 @@ if ($Uninstall) {
 Write-Host "Building agents (profile: $Preset)..." -ForegroundColor Cyan
 & (Join-Path $PSScriptRoot 'build.ps1') -Preset $Preset | Out-Null
 
+# A build that used local (private) overrides writes to build/local/ so it can
+# never be committed; the marker says which folder this build used.
+$buildRoot = Join-Path $repo 'build'
+$markerPath = Join-Path $repo 'build\last-build.json'
+if (Test-Path $markerPath) {
+    $marker = Get-Content $markerPath -Raw | ConvertFrom-Json
+    if ($marker.preset -eq $Preset -and (Test-Path $marker.out_root)) { $buildRoot = $marker.out_root }
+}
+if ($buildRoot -ne (Join-Path $repo 'build')) {
+    Write-Host "Using local build (private overrides): $buildRoot" -ForegroundColor DarkGray
+}
+
 # --- install -----------------------------------------------------------------
 
 $blocked = @()
 
 foreach ($p in $plans) {
-    if (-not (Test-Path $p.Source)) { throw "Missing build output: $($p.Source). Run scripts/build.ps1." }
+    $srcDir = Join-Path $buildRoot $p.Source
+    if (-not (Test-Path $srcDir)) { throw "Missing build output: $srcDir. Run scripts/build.ps1." }
     if (-not (Test-Path $p.Dest)) { New-Item -ItemType Directory -Path $p.Dest -Force | Out-Null }
 
     $manifestPath = Join-Path $p.Dest $manifestName
@@ -223,7 +236,7 @@ foreach ($p in $plans) {
         $known = (Get-Content $manifestPath -Raw | ConvertFrom-Json).files
     }
 
-    $files = Get-ChildItem $p.Source -Filter $p.Filter
+    $files = Get-ChildItem $srcDir -Filter $p.Filter
     $written = @()
     $skippedOrch = @()
     foreach ($f in $files) {
@@ -270,7 +283,7 @@ foreach ($p in $plans) {
 
 if ($null -ne $claudeInstr) {
     # The built copy, with the shared routing rules and roster expanded in.
-    $src = Join-Path $repo 'build\instructions\claude-delegation.md'
+    $src = Join-Path $buildRoot 'instructions\claude-delegation.md'
     $ours = $true
     if ((Test-Path $claudeInstr.PolicyFile) -and -not $Force) {
         $ours = [System.IO.File]::ReadAllText($claudeInstr.PolicyFile).Contains($policyMarker)

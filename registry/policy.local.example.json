@@ -1,0 +1,33 @@
+{
+  "_note": "EXAMPLE. Copy to registry/policy.local.json (gitignored) and fill in your organization's model policy. Keep employer policy and internal usage figures in the .local file only - this repo is public. The build reads the profile matching -Preset; a local profile overrides that preset's role models and the cost figures shown in the Copilot instructions. Local builds are written to build/local/ so they can never be committed.",
+
+  "profiles": {
+    "work": {
+      "summary": "One line on the policy, for whoever reads this file next.",
+
+      "role_overrides": {
+        "review":          ["<mid-tier model>", "<fallback>"],
+        "review-critical": ["<strongest model your policy allows for high-stakes review>", "<fallback>"],
+        "deep-reasoning":  ["<mid-tier model>", "<fallback>"],
+        "triage":          ["<mid-tier model>", "<fallback>"],
+        "implement":       ["<mid-tier model>", "<fallback>"],
+        "bulk-edit":       ["<cheapest code model>", "<fallback>"],
+        "search":          ["<cheapest model>", "<fallback>"],
+        "summarize":       ["<cheapest model>", "<fallback>"],
+        "write-prose":     ["<cheapest model>", "<fallback>"]
+      },
+
+      "cost_basis": {
+        "title": "What the figures are and where they came from:",
+        "rows": [
+          { "model": "<model>", "value": "<relative cost, e.g. 1x>" }
+        ],
+        "note": "Caveats on the figures."
+      },
+
+      "cost_notes": [
+        "Your organization's routing rules, one per line. These replace the list-price notes in the Copilot instructions."
+      ]
+    }
+  }
+}

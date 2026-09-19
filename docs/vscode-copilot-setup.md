@@ -114,6 +114,34 @@ To commit the agents into a repo so the whole team gets them:
 That writes to `<repo>\.github\agents\` and `<repo>\.github\instructions\`, both of
 which are meant to be committed.
 
+## Your organization's model policy (local files)
+
+An employer's model policy and usage figures don't belong in a public repo, so
+they live in two git-ignored files:
+
+| File | Holds | Created by |
+|---|---|---|
+| `registry/policy.local.json` | Which models each role uses, plus the cost figures and rules shown in the Copilot instructions | copying `registry/policy.local.example.json` |
+| `registry/availability.local.json` | Which models your picker actually offers | `.\scripts\set-availability.ps1 -Local ...` |
+
+When either file has a profile for the preset you build, the build applies it,
+reports `Local overrides applied`, and writes to **`build/local/`**, which is also
+git-ignored. That way a work build can never end up in a commit. `install.ps1`
+picks up the local build automatically.
+
+**These files don't travel with Sync Changes.** Copy them to the work machine
+yourself, through your work OneDrive, email to yourself, or a USB stick, into the
+repo's `registry\` folder. Then run:
+
+```powershell
+.\scripts\set-availability.ps1 -Local -List                 # what's recorded
+.\scripts\install.ps1 -Target copilot -Preset work -WithInstructions
+```
+
+If your organization removes models on a schedule (for example on the 1st of
+each month), re-check the picker afterwards and update the list with
+`set-availability.ps1 -Local -Preset work -Mode allow -Models ...`.
+
 ## Working within an org model policy
 
 If your workplace asks that Anthropic models be reserved for work that needs

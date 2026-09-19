@@ -51,6 +51,21 @@ if (Test-Path $availPath) {
     }
 }
 
+# Local availability (registry/availability.local.json, gitignored) replaces the
+# public file's profile for this preset - an employer's model list stays local.
+$availLocalPath = Join-Path $repo 'registry\availability.local.json'
+$availLocalUsed = $false
+if (Test-Path $availLocalPath) {
+    $availLocal = Get-Content $availLocalPath -Raw | ConvertFrom-Json
+    $lp = $availLocal.profiles.$Preset
+    if ($null -ne $lp) {
+        $availLocalUsed = $true
+        $availMode = $lp.mode
+        $availList = [string[]]$lp.models
+        $availVerified = $lp.verified_on
+    }
+}
+
 function Test-Available {
     param([string]$Name)
     if ($availMode -eq 'allow') { return ($availList -contains $Name) }
@@ -93,6 +108,38 @@ if ($null -ne $profileNode -and $null -ne $profileNode.role_overrides) {
         $overrides[$p.Name] = $p.Value
     }
 }
+
+# Local policy (registry/policy.local.json, gitignored). An employer's model
+# policy and internal usage figures belong on the machine that needs them, not in
+# a public repo. For this preset it can replace role model lists, and supply the
+# cost table and cost notes shown in the Copilot instructions.
+$costBasis = $null
+$costNotes = [string[]]$policy.cost_notes
+$localPolicyPath = Join-Path $repo 'registry\policy.local.json'
+$localPolicyUsed = $false
+if (Test-Path $localPolicyPath) {
+    $localPolicy = Get-Content $localPolicyPath -Raw | ConvertFrom-Json
+    $localProfile = $localPolicy.profiles.$Preset
+    if ($null -ne $localProfile) {
+        $localPolicyUsed = $true
+        if ($null -ne $localProfile.role_overrides) {
+            foreach ($p in $localProfile.role_overrides.PSObject.Properties) { $overrides[$p.Name] = $p.Value }
+        }
+        if ($null -ne $localProfile.cost_basis) { $costBasis = $localProfile.cost_basis }
+        if ($null -ne $localProfile.cost_notes) { $costNotes = [string[]]$localProfile.cost_notes }
+    }
+}
+foreach ($r in $overrides.Keys) {
+    if ($null -eq $policy.roles.$r) { throw "Override for unknown role '$r' - roles are defined in registry/policy.json." }
+}
+
+# Where output goes. build/ and docs/MODELS.md are committed, so a build that used
+# local (private) overrides must not write there - it would put an employer's
+# model policy and usage figures into a public commit. Local builds go to
+# build/local/ (gitignored); build/last-build.json tells install.ps1 which to use.
+$isLocalBuild = $localPolicyUsed -or $availLocalUsed
+if ($isLocalBuild) { $outRoot = Join-Path $repo 'build\local' } else { $outRoot = Join-Path $repo 'build' }
+if (-not (Test-Path $outRoot)) { New-Item -ItemType Directory -Path $outRoot -Force | Out-Null }
 
 # Copilot names that are valid in agent mode, for validation.
 $agentCapable = @{}
@@ -185,8 +232,8 @@ function Format-YamlValue {
 
 # --- build -------------------------------------------------------------------
 
-$claudeOut  = Join-Path $repo 'build\claude\agents'
-$copilotOut = Join-Path $repo 'build\copilot\agents'
+$claudeOut  = Join-Path $outRoot 'claude\agents'
+$copilotOut = Join-Path $outRoot 'copilot\agents'
 foreach ($d in $claudeOut, $copilotOut) {
     if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
     Get-ChildItem $d -Filter '*.md' -ErrorAction SilentlyContinue | Remove-Item -Force
@@ -214,18 +261,22 @@ function Get-BudgetFooter {
     # maxTurns loses its unreported work and gets paid for again on the re-run -
     # 9 of 22 runs in the 2026-09-18 audit ended exactly that way. So every agent
     # is told its budget and to hand back partial results before the hard stop.
-    param($MaxTurns)
+    # -Soft: the platform has no hard turn cap (Copilot custom agents), so the same
+    # number becomes a budget the agent holds itself to.
+    param($MaxTurns, [switch]$Soft)
+    if ($null -eq $MaxTurns) { $MaxTurns = 20 }
+    $wrap = [math]::Max(1, [math]::Floor([int]$MaxTurns * 0.75))
     $lines = @('', '## Turn budget', '')
-    if ($null -ne $MaxTurns) {
-        $wrap = [math]::Max(1, [math]::Floor([int]$MaxTurns * 0.75))
+    if (-not $Soft) {
         $lines += "You have at most **$MaxTurns turns**, and every turn re-reads your whole"
         $lines += 'context - turns are the main cost of this run. By about **turn ' + $wrap + '**, stop'
         $lines += 'starting new work: finish or back out the step in progress, then hand back'
     }
     else {
         $lines += 'Every turn re-reads your whole context, so turns are the main cost of this'
-        $lines += 'run. Well before you run out, stop starting new work: finish or back out'
-        $lines += 'the step in progress, then hand back'
+        $lines += 'run. Nothing stops you automatically, so hold yourself to a budget of about'
+        $lines += "**$MaxTurns tool calls**. By about call $wrap, stop starting new work: finish or"
+        $lines += 'back out the step in progress, then hand back'
     }
     $lines += 'what is done, what is left, and exactly where to resume. A run cut off at the'
     $lines += 'limit loses everything it had not yet reported and has to be paid for again.'
@@ -238,6 +289,9 @@ function Get-BudgetFooter {
     $lines += '  edit per turn.'
     $lines += '- Read line ranges and grep with context, not whole files you only need a'
     $lines += '  slice of.'
+    $lines += '- **Two identical failures means stop.** Never retry the same failing call or'
+    $lines += '  command a third time - report the error and what you tried. A retry loop'
+    $lines += '  is the most expensive way to fail.'
     $lines += '- If the task is plainly too big for your budget, say so at the start and'
     $lines += '  propose a split instead of starting a run you cannot finish.'
     $lines += '- If you delegate, launch subagents in the foreground (run_in_background:'
@@ -477,7 +531,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $copilotExtra.Keys) { $lines += "${k}: $(Format-YamlValue $copilotExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $copilotText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body -Platform copilot) + (Get-BudgetFooter $null)
+    $copilotText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body -Platform copilot) + (Get-BudgetFooter $meta.claude.maxTurns -Soft)
     Write-Utf8NoBom (Join-Path $copilotOut "$($meta.name).agent.md") $copilotText
 
     $summary += [pscustomobject]@{
@@ -496,40 +550,56 @@ $templatePath = Join-Path $repo 'templates\model-routing.instructions.md'
 if (Test-Path $templatePath) {
     $tpl = Get-Content $templatePath -Raw
 
-    # Routing table, one row per role.
+    # Routing table, one row per role, for THIS preset: overrides applied and
+    # unreachable models dropped, so it matches what the agents actually run on.
     $rows = @('| Kind of work | Model |', '|---|---|')
+    $routedNames = @()
     foreach ($p in $policy.roles.PSObject.Properties) {
         $picks = [string[]]$p.Value.copilot
         if ($overrides.ContainsKey($p.Name)) { $picks = [string[]]$overrides[$p.Name] }
+        $picks = @($picks | Where-Object { Test-Available $_ })
+        if ($picks.Count -eq 0) { continue }
+        $routedNames += $picks
         $first = $picks[0]
         $rest = ''
         if ($picks.Count -gt 1) { $rest = ' (fall back: ' + (($picks[1..($picks.Count - 1)]) -join ', ') + ')' }
         $rows += "| $($p.Value.intent) | **$first**$rest |"
     }
     $routingTable = $rows -join "`n"
+    $routedNames = @($routedNames | Select-Object -Unique)
 
-    # Blended cost list, cheapest first, for the models actually routed to.
-    $routedNames = @()
-    foreach ($p in $policy.roles.PSObject.Properties) { $routedNames += [string[]]$p.Value.copilot }
-    foreach ($p in $policy.workplace_overrides.profiles.PSObject.Properties) {
-        if ($null -ne $p.Value.role_overrides) {
-            foreach ($r in $p.Value.role_overrides.PSObject.Properties) { $routedNames += [string[]]$r.Value }
+    # Cost section. A preset can supply measured figures (cost_basis in the local
+    # policy) - real billing beats list prices - otherwise list-price blended cost.
+    $costLines = @()
+    if ($null -ne $costBasis) {
+        if ($costBasis.title) { $costLines += $costBasis.title; $costLines += '' }
+        $costLines += '| Model | Relative cost |'
+        $costLines += '|---|---:|'
+        foreach ($row in $costBasis.rows) { $costLines += "| $($row.model) | $($row.value) |" }
+        if ($costBasis.note) { $costLines += ''; $costLines += $costBasis.note }
+    }
+    else {
+        $costLines += 'List price per 1M tokens, blended as `0.8 x input + 0.2 x output` (agent turns'
+        $costLines += 'are input-heavy). Real billing can differ from list price - measure yours:'
+        $costLines += ''
+        foreach ($m in ($models.models | Where-Object { $routedNames -contains $_.copilot_name } | Sort-Object blended)) {
+            $costLines += "- $($m.copilot_name) - **$('{0:N2}' -f $m.blended)**"
         }
     }
-    $routedNames = $routedNames | Select-Object -Unique
-    $costLines = @()
-    foreach ($m in ($models.models | Where-Object { $routedNames -contains $_.copilot_name } | Sort-Object blended)) {
-        $costLines += "- $($m.copilot_name) - **$('{0:N2}' -f $m.blended)**"
-    }
     $costList = $costLines -join "`n"
+
+    $noteLines = @()
+    foreach ($n in $costNotes) { $noteLines += "- $n" }
+    $costNotesText = $noteLines -join "`n"
 
     $agentList = '`' + (($summary | ForEach-Object { $_.Agent }) -join '` `') + '`'
 
     $tpl = [regex]::Replace($tpl, '(?s)(<!-- BEGIN:routing-table -->).*?(<!-- END:routing-table -->)', ('$1' + "`n" + $routingTable.Replace('$', '$$') + "`n" + '$2'))
     $tpl = [regex]::Replace($tpl, '(?s)(<!-- BEGIN:cost-list -->).*?(<!-- END:cost-list -->)',       ('$1' + "`n" + $costList.Replace('$', '$$')     + "`n" + '$2'))
     $tpl = [regex]::Replace($tpl, '(?s)(<!-- BEGIN:agent-list -->).*?(<!-- END:agent-list -->)',     ('$1' + "`n" + $agentList.Replace('$', '$$')    + "`n" + '$2'))
+    $tpl = [regex]::Replace($tpl, '(?s)(<!-- BEGIN:cost-notes -->).*?(<!-- END:cost-notes -->)',     ('$1' + "`n" + $costNotesText.Replace('$', '$$') + "`n" + '$2'))
 
-    $instrOut = Join-Path $repo 'build\instructions'
+    $instrOut = Join-Path $outRoot 'instructions'
     if (-not (Test-Path $instrOut)) { New-Item -ItemType Directory -Path $instrOut -Force | Out-Null }
     Write-Utf8NoBom (Join-Path $instrOut 'model-routing.instructions.md') $tpl
 }
@@ -539,7 +609,7 @@ if (Test-Path $templatePath) {
 # triage-lead through templates/partials/delegation-core.md.
 $delegationTpl = Join-Path $repo 'templates\claude-delegation.md'
 if (Test-Path $delegationTpl) {
-    $instrOut = Join-Path $repo 'build\instructions'
+    $instrOut = Join-Path $outRoot 'instructions'
     if (-not (Test-Path $instrOut)) { New-Item -ItemType Directory -Path $instrOut -Force | Out-Null }
     $delegation = Expand-Template ([System.IO.File]::ReadAllText($delegationTpl))
     Write-Utf8NoBom (Join-Path $instrOut 'claude-delegation.md') ($delegation.TrimEnd() + "`n")
@@ -605,18 +675,36 @@ $md += '|---|---|---|---|'
 foreach ($s in $summary) { $md += "| $($s.Agent) | $($s.Role) | $($s.Claude) | $($s.Copilot) |" }
 $md += ''
 
-$docsDir = Join-Path $repo 'docs'
+if ($isLocalBuild) { $docsDir = $outRoot } else { $docsDir = Join-Path $repo 'docs' }
 if (-not (Test-Path $docsDir)) { New-Item -ItemType Directory -Path $docsDir -Force | Out-Null }
 Write-Utf8NoBom (Join-Path $docsDir 'MODELS.md') (($md -join "`n") + "`n")
+
+# Tell install.ps1 where this build went (gitignored marker).
+$marker = [ordered]@{ preset = $Preset; local = [bool]$isLocalBuild; out_root = $outRoot; built_on = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') }
+Write-Utf8NoBom (Join-Path $repo 'build\last-build.json') (($marker | ConvertTo-Json) + "`n")
 
 # --- report ------------------------------------------------------------------
 
 Write-Host ''
 Write-Host "Built $($summary.Count) agents (profile: $Preset)" -ForegroundColor Green
 $summary | Format-Table -AutoSize
-Write-Host "  build/claude/agents/   $($summary.Count) files"
-Write-Host "  build/copilot/agents/  $($summary.Count) files"
-Write-Host "  docs/MODELS.md         regenerated"
+$rel = $outRoot.Substring($repo.Length).TrimStart('\').Replace('\', '/')
+Write-Host "  $rel/claude/agents/   $((Get-ChildItem $claudeOut -Filter '*.md').Count) files"
+Write-Host "  $rel/copilot/agents/  $((Get-ChildItem $copilotOut -Filter '*.md').Count) files"
+if ($isLocalBuild) {
+    Write-Host "  $rel/MODELS.md        regenerated (local build - not committed)" -ForegroundColor DarkGray
+}
+else {
+    Write-Host "  docs/MODELS.md         regenerated"
+}
+
+if ($localPolicyUsed -or $availLocalUsed) {
+    Write-Host ''
+    $used = @()
+    if ($localPolicyUsed) { $used += 'registry/policy.local.json' }
+    if ($availLocalUsed) { $used += 'registry/availability.local.json' }
+    Write-Host "Local overrides applied for '$Preset': $($used -join ', ')" -ForegroundColor Cyan
+}
 
 if ($availMode -ne 'all') {
     Write-Host ''

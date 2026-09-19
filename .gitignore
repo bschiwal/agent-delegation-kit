@@ -12,3 +12,9 @@ desktop.ini
 # Local scratch
 /tmp/
 *.local.json
+
+# Local, machine-specific overrides. These can hold employer model policy and
+# internal usage figures, so they must never be committed to this public repo.
+registry/*.local.json
+build/local/
+build/last-build.json

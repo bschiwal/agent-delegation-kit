@@ -226,6 +226,9 @@ Spend turns carefully:
   edit per turn.
 - Read line ranges and grep with context, not whole files you only need a
   slice of.
+- **Two identical failures means stop.** Never retry the same failing call or
+  command a third time - report the error and what you tried. A retry loop
+  is the most expensive way to fail.
 - If the task is plainly too big for your budget, say so at the start and
   propose a split instead of starting a run you cannot finish.
 - If you delegate, launch subagents in the foreground (run_in_background:

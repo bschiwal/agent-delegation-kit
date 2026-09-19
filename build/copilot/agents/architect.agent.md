@@ -74,8 +74,9 @@ Do not paste the plan into your reply. Implementers read the file.
 ## Turn budget
 
 Every turn re-reads your whole context, so turns are the main cost of this
-run. Well before you run out, stop starting new work: finish or back out
-the step in progress, then hand back
+run. Nothing stops you automatically, so hold yourself to a budget of about
+**25 tool calls**. By about call 18, stop starting new work: finish or
+back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
 
@@ -87,6 +88,9 @@ Spend turns carefully:
   edit per turn.
 - Read line ranges and grep with context, not whole files you only need a
   slice of.
+- **Two identical failures means stop.** Never retry the same failing call or
+  command a third time - report the error and what you tried. A retry loop
+  is the most expensive way to fail.
 - If the task is plainly too big for your budget, say so at the start and
   propose a split instead of starting a run you cannot finish.
 - If you delegate, launch subagents in the foreground (run_in_background:
