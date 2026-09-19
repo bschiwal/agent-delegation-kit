@@ -2,6 +2,7 @@
 {
   "name": "implementer",
   "role": "implement",
+  "when": "Build to a settled spec",
   "description": "Writes code against a clear spec or plan. Use when what to build is already decided and the work is to build it. Not for open-ended design - send that to architect first.",
   "claude": {
     "tools": "Read, Write, Edit, Grep, Glob, Bash, TodoWrite",

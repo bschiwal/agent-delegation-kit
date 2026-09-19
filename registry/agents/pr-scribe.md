@@ -2,6 +2,7 @@
 {
   "name": "pr-scribe",
   "role": "write-prose",
+  "when": "Commit message or PR description",
   "description": "Writes commit messages, PR descriptions and changelog entries from the actual diff. Use when work is done and needs to be described for review. Read-only - it drafts text, it does not commit or push.",
   "claude": {
     "tools": "Read, Grep, Bash",

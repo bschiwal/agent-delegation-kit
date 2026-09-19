@@ -245,6 +245,53 @@ function Get-BudgetFooter {
     return ($lines -join "`n") + "`n"
 }
 
+# --- shared templates ----------------------------------------------------------
+# The routing rules live once, in templates/partials/, and are pulled into every
+# consumer at build time: <!-- INCLUDE:name --> inserts a partial, and
+# <!-- GENERATE:roster --> inserts the agent table built from each agent's "when".
+# Before this, the main-session policy and triage-lead each carried a hand-written
+# copy, and the copies had already drifted.
+
+$tierLabel = @{ haiku = 'cheap'; sonnet = 'standard'; opus = 'premium'; fable = 'frontier' }
+$tierOrder = @{ cheap = 0; standard = 1; premium = 2; frontier = 3 }
+
+foreach ($a in $parsed) {
+    if ($a.Meta.delegable -ne $false -and [string]::IsNullOrWhiteSpace($a.Meta.when)) {
+        throw "$($a.File): delegable agents need a short ""when"" field - it becomes the agent's row in the generated roster."
+    }
+}
+
+function Get-RosterTable {
+    $rows = @()
+    foreach ($a in $parsed) {
+        if ($a.Meta.delegable -eq $false) { continue }
+        $model = $policy.roles.($a.Meta.role).claude.model
+        $tier = $tierLabel[$model]
+        if ($null -eq $tier) { $tier = $model }
+        $rows += [pscustomobject]@{ When = $a.Meta.when; Name = $a.Meta.name; Tier = $tier; Order = $tierOrder[$tier] }
+    }
+    $lines = @('| Need | Agent | Tier |', '|---|---|---|')
+    foreach ($r in ($rows | Sort-Object Order, Name)) {
+        $lines += "| $($r.When) | ``$($r.Name)`` | $($r.Tier) |"
+    }
+    return ($lines -join "`n")
+}
+
+function Expand-Template {
+    param([string]$Text)
+    $partialDir = Join-Path $repo 'templates\partials'
+    $out = [regex]::Replace($Text, '<!--\s*INCLUDE:([\w\-]+)\s*-->', {
+        param($m)
+        $p = Join-Path $partialDir ($m.Groups[1].Value + '.md')
+        if (-not (Test-Path $p)) { throw "Template include not found: $p" }
+        return ([System.IO.File]::ReadAllText($p).Trim())
+    })
+    $roster = Get-RosterTable
+    $out = [regex]::Replace($out, '<!--\s*GENERATE:roster\s*-->', { param($m) $roster })
+    if ($out -match '<!--\s*(INCLUDE|GENERATE):') { throw "Unexpanded template marker left in output: $($Matches[0])" }
+    return $out
+}
+
 function Get-DelegateList {
     # "delegates": "*" means every delegable agent except itself; an array names
     # them explicitly and is validated so a typo cannot silently shrink the team.
@@ -297,7 +344,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $claudeExtra.Keys) { $lines += "${k}: $(Format-YamlValue $claudeExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $claudeText = ($lines -join "`n") + "`n" + $agent.Body + (Get-BudgetFooter $meta.claude.maxTurns)
+    $claudeText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body) + (Get-BudgetFooter $meta.claude.maxTurns)
     Write-Utf8NoBom (Join-Path $claudeOut "$($meta.name).md") $claudeText
 
     # ---- Copilot output ----
@@ -360,7 +407,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $copilotExtra.Keys) { $lines += "${k}: $(Format-YamlValue $copilotExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $copilotText = ($lines -join "`n") + "`n" + $agent.Body + (Get-BudgetFooter $null)
+    $copilotText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body) + (Get-BudgetFooter $null)
     Write-Utf8NoBom (Join-Path $copilotOut "$($meta.name).agent.md") $copilotText
 
     $summary += [pscustomobject]@{
@@ -415,6 +462,17 @@ if (Test-Path $templatePath) {
     $instrOut = Join-Path $repo 'build\instructions'
     if (-not (Test-Path $instrOut)) { New-Item -ItemType Directory -Path $instrOut -Force | Out-Null }
     Write-Utf8NoBom (Join-Path $instrOut 'model-routing.instructions.md') $tpl
+}
+
+# Main-session delegation policy for Claude Code. install.ps1 -WithInstructions
+# copies this next to the user's CLAUDE.md. It shares its routing rules with
+# triage-lead through templates/partials/delegation-core.md.
+$delegationTpl = Join-Path $repo 'templates\claude-delegation.md'
+if (Test-Path $delegationTpl) {
+    $instrOut = Join-Path $repo 'build\instructions'
+    if (-not (Test-Path $instrOut)) { New-Item -ItemType Directory -Path $instrOut -Force | Out-Null }
+    $delegation = Expand-Template ([System.IO.File]::ReadAllText($delegationTpl))
+    Write-Utf8NoBom (Join-Path $instrOut 'claude-delegation.md') ($delegation.TrimEnd() + "`n")
 }
 
 # --- generated model reference ----------------------------------------------

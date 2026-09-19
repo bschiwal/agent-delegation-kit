@@ -7,8 +7,8 @@ This repo generates agent profiles for two platforms from one source. Read
 
 **Never put a model name in an agent source.** Agents name a `role`;
 `registry/policy.json` maps roles to models. That indirection is the whole point -
-Copilot's catalogue changes every few weeks, and a model hardcoded in fifteen
-agent files is fifteen files to fix. `build.ps1` drops a stray `model` field and
+Copilot's catalogue changes every few weeks, and a model hardcoded in fourteen
+agent files is fourteen files to fix. `build.ps1` drops a stray `model` field and
 warns.
 
 ## Where to make a change
@@ -21,7 +21,9 @@ warns.
 | Correct a price | Run `scripts/refresh-models.ps1 -Apply` - do not hand-edit |
 | Change a merit score or note | `registry/models.json` - these are hand-maintained |
 | Record which models your org actually allows | `scripts/set-availability.ps1` - do not hand-edit availability.json |
-| Change the always-on chat rules | `templates/model-routing.instructions.md` |
+| Change how work is routed to agents (both orchestrators) | `templates/partials/delegation-core.md` |
+| Change the main-session policy wrapper | `templates/claude-delegation.md` |
+| Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
 
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
@@ -67,17 +69,22 @@ Two top-level fields control orchestration, and neither is emitted as-is:
 | Field | Effect |
 |---|---|
 | `"delegates": "*"` | This agent orchestrates. The build generates its allow-list from every delegable agent except itself: `Agent(a, b, ...)` prepended to Claude `tools`, and `agents: [...]` plus the `agent` tool set for Copilot. An array of names instead of `"*"` restricts it, and unknown names fail the build. |
-| `"delegable": false` | Keep this agent out of every orchestrator's allow-list. Set on `triage-lead` (no orchestrator calls another) and `delegation-router` (a plan-only agent is useless to something that executes). |
+| `"delegable": false` | Keep this agent out of every orchestrator's allow-list. Set on `triage-lead`, so no orchestrator calls another. |
+
+Delegable agents need a short `"when"` field: their row in the generated roster.
+The routing rules live once, in `templates/partials/delegation-core.md`, and are
+pulled into both `templates/claude-delegation.md` (the main-session policy) and
+`triage-lead` by `<!-- INCLUDE:delegation-core -->`. `<!-- GENERATE:roster -->`
+expands to the agent table built from every `when`. Edit the partial, not the
+built copies - the build fails on a missing `when` or an unexpanded marker.
 
 Every agent also gets a generated **Turn budget** footer (`Get-BudgetFooter` in
 `build.ps1`): its `maxTurns`, the turn at which to stop starting new work (75%),
 and how to spend turns - batch work, script repetitive edits, delegate in the
 foreground. Do not repeat that guidance in agent prompts; change it in one place.
 
-Because the allow-list is generated, a new agent joins `triage-lead`'s team on the
-next build. Its prompt still has a hand-written roster table saying *when* to use
-each agent - update that when you add one, or the PM will know the agent exists
-but not what it is for.
+Because the allow-list and the roster are both generated, a new agent with a
+`when` field joins both orchestrators on the next build with no other edits.
 
 ## Writing agent prompts
 
@@ -99,7 +106,7 @@ The prompts are the actual product; the scripts are plumbing. What makes them wo
 There is no test suite. Verify by hand:
 
 ```powershell
-.\scripts\build.ps1                  # must report 15 agents, no warnings
+.\scripts\build.ps1                  # must report 14 agents, no warnings
 .\scripts\build.ps1 -Preset work     # review roles must still be Claude
 .\scripts\refresh-models.ps1         # must parse ~29 models, no broken routes
 .\scripts\set-availability.ps1 -List # every role must resolve to something

@@ -2,6 +2,7 @@
 {
   "name": "code-reviewer",
   "role": "review",
+  "when": "Review a code change for logic and behaviour bugs",
   "description": "Reviews a diff or branch for correctness bugs, broken edge cases and regressions. Use after writing or changing code, and before opening a PR. Read-only - it reports, it does not fix.",
   "claude": {
     "tools": "Read, Grep, Glob, Bash, TodoWrite",

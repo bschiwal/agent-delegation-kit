@@ -49,7 +49,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | `.\scripts\install.ps1 -Target claude` | Claude Code only |
 | `.\scripts\install.ps1 -Target copilot` | Copilot only |
 | `.\scripts\install.ps1 -Preset work` | Apply the workplace model policy (see below) |
-| `.\scripts\install.ps1 -WithInstructions` | Also make every Claude Code session delegate like `triage-lead`, and install Copilot routing rules |
+| `.\scripts\install.ps1 -WithInstructions` | **Recommended.** Every Claude Code session orchestrates the agents itself (no need to name them); also installs Copilot model-routing rules |
 | `.\scripts\install.ps1 -Scope project -Path C:\repos\my-app` | Install into one repo, to commit and share with a team |
 | `.\scripts\install.ps1 -Uninstall` | Remove everything this kit installed |
 
@@ -91,42 +91,48 @@ Each agent carries its own model, tool allow-list, effort level and turn cap, so
 delegating to `repo-scout` genuinely costs less than searching inline - it runs
 on Haiku at low effort with no write tools.
 
-### Hand the whole task to a PM: `triage-lead`
+### Delegation: you don't pick the agents
 
-If you would rather not pick agents yourself, give the task to `triage-lead`:
+There is one delegation policy, and it can run in two places:
+
+| Where you work | Who orchestrates | What you do |
+|---|---|---|
+| **Claude Code, installed with `-WithInstructions`** (recommended) | The main session itself | Nothing - just describe the task |
+| **Copilot**, or Claude Code without the policy | `triage-lead` | Pick `triage-lead` and describe the task |
+
+Either way the work goes the same route. Recon goes to cheap agents first, then
+design if the approach isn't obvious, then the build. Every code change goes
+through `code-reviewer`, and anything that produces a number also goes through
+`data-model-reviewer`. The answer ends with the chain that actually ran:
 
 ```
-> use triage-lead: add a Prior Year Margin % measure to the rebate model and make sure it's right
+Team: repo-scout -> pbir-builder x3 -> code-reviewer + data-model-reviewer
 ```
 
-It reads the request, sends recon to `repo-scout`, design to `architect` if the
-approach is not obvious, the build to `implementer`, and then the change to
-`code-reviewer`, plus `data-model-reviewer` for anything that produces a number.
-Confirmed findings go back for a fix. You get one merged answer that ends with the
-chain that actually ran:
+A code change whose team line has no reviewer means the review was skipped, so ask
+for it. The policy is strong guidance, not an enforced rule.
 
-```
-Team: repo-scout -> implementer -> code-reviewer + data-model-reviewer -> implementer
-```
-
-It has no edit tools on purpose, so it cannot skip a specialist and quietly do the
-work itself. It runs on Sonnet rather than Opus because it sits in front of every
-request - the deep reasoning happens in the Opus agents it calls.
-
-Don't use it for work that needs your Power BI / Fabric tools or skills. Neither
-it nor the agents it calls can reach them, so the main session should orchestrate
-that work directly - see [docs/routing.md](docs/routing.md#4-cost-is-turns-times-context)
-for what happened when it didn't.
-
-`delegation-router` is the plan-only version: it returns the same plan and runs
-nothing. Use it when you want to see or adjust the plan before any work starts.
-
-To make every new session behave as the triage lead without naming it, install
-with `-WithInstructions`. That adds the delegation policy through one marked
-import block in `~\.claude\CLAUDE.md`, and the session keeps Opus, MCP, skills and
-memory. Don't set `"agent": "triage-lead"` in your user settings: that replaces
-the system prompt and limits every session to `triage-lead`'s tools and model. See
+**Claude Code.** `-WithInstructions` adds the policy to `~\.claude\CLAUDE.md`
+through one marked import block, so every session orchestrates on Opus with its
+full tools, MCP servers, skills and memory. In that setup the installer **skips
+`triage-lead`** on purpose. A second orchestrator under the main session relays
+everything twice and can't reach the Power BI / Fabric tools - see
+[docs/routing.md](docs/routing.md#4-cost-is-turns-times-context) for what that cost.
+Don't set `"agent": "triage-lead"` in your settings either, because that replaces
+the system prompt and strips the session's tools. Details in
 [docs/claude-setup.md](docs/claude-setup.md#make-every-session-a-triage-lead).
+
+**Copilot.** Copilot never loads `CLAUDE.md`, so `triage-lead` is how you get
+delegation there. It has no edit tools on purpose, so it can't skip a specialist
+and do the work itself. It hands back anything that needs tools it doesn't have.
+
+**Want the plan before any work?** Ask for "a plan only". The main session or
+`triage-lead` returns the plan and runs nothing. For a design of the code itself,
+ask `architect`, which writes the plan to `.claude/plans/`.
+
+The routing rules live once, in `templates/partials/delegation-core.md`, and are
+built into both the Claude Code policy and `triage-lead`, so the two can't drift
+apart.
 
 ### GitHub Copilot (VS Code)
 
@@ -329,8 +335,7 @@ that is chat-only and cannot drive an agent all surface as errors or warnings.
 | `data-model-reviewer` | review | Wrong numbers in semantic models, DAX, SQL |
 | `architect` | deep-reasoning | A plan before code exists |
 | `debugger` | deep-reasoning | Root cause of a failure |
-| `delegation-router` | deep-reasoning | Which agents to use for a task, in what order |
-| `triage-lead` | triage | PM: delegates the whole task to the others and merges the result |
+| `triage-lead` | triage | Orchestrator for Copilot, or Claude Code without the delegation policy - also does "plan only" |
 | `implementer` | implement | Build to a settled spec |
 | `pbir-builder` | implement | Power BI report pages from a spec, via a generator script - one page per run |
 | `test-author` | implement | Tests for existing code |

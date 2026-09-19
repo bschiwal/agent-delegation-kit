@@ -2,6 +2,7 @@
 {
   "name": "bulk-editor",
   "role": "bulk-edit",
+  "when": "The same mechanical change across many files",
   "description": "Applies the same mechanical change across many files - renames, import rewrites, signature updates, codemods, formatting, config propagation. Use when the change is fully specified and verifiable. Not for anything needing judgement.",
   "claude": {
     "tools": "Read, Edit, Write, Grep, Glob, Bash",

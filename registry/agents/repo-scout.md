@@ -2,6 +2,7 @@
 {
   "name": "repo-scout",
   "role": "search",
+  "when": "Find where something is, or how it works, beyond a couple of greps",
   "description": "Answers where-is and how-does-this-work questions by sweeping the codebase. Use instead of reading many files yourself - it returns the conclusion and the paths, not the file contents. Read-only.",
   "claude": {
     "tools": "Read, Grep, Glob, Bash",

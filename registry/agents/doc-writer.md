@@ -2,6 +2,7 @@
 {
   "name": "doc-writer",
   "role": "write-prose",
+  "when": "Docs from settled code",
   "description": "Writes and updates documentation from code that already exists - READMEs, API docs, runbooks, module overviews, docstrings. Use after the code is settled.",
   "claude": {
     "tools": "Read, Write, Edit, Grep, Glob",

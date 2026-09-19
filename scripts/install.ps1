@@ -104,26 +104,46 @@ if ($Target -eq 'copilot' -or $Target -eq 'both') {
 # inside a marked block. CLAUDE.md belongs to the user, so the kit only ever adds
 # or removes its own block and never rewrites anything else in the file.
 
-$claudeInstr = $null
-if (($Target -eq 'claude' -or $Target -eq 'both') -and ($WithInstructions -or $Uninstall)) {
-    if ($Scope -eq 'user') {
-        $claudeInstr = [pscustomobject]@{
-            PolicyFile = Join-Path $userHome '.claude\agent-delegation.md'
-            ClaudeMd   = Join-Path $userHome '.claude\CLAUDE.md'
-            Import     = '@~/.claude/agent-delegation.md'
-        }
-    }
-    else {
-        $claudeInstr = [pscustomobject]@{
-            PolicyFile = Join-Path $Path '.claude\agent-delegation.md'
-            ClaudeMd   = Join-Path $Path 'CLAUDE.md'
-            Import     = '@.claude/agent-delegation.md'
-        }
+if ($Scope -eq 'user') {
+    $claudeSpec = [pscustomobject]@{
+        PolicyFile = Join-Path $userHome '.claude\agent-delegation.md'
+        ClaudeMd   = Join-Path $userHome '.claude\CLAUDE.md'
+        Import     = '@~/.claude/agent-delegation.md'
     }
 }
+else {
+    $claudeSpec = [pscustomobject]@{
+        PolicyFile = Join-Path $Path '.claude\agent-delegation.md'
+        ClaudeMd   = Join-Path $Path 'CLAUDE.md'
+        Import     = '@.claude/agent-delegation.md'
+    }
+}
+$claudeTarget = ($Target -eq 'claude' -or $Target -eq 'both')
+$claudeInstr = $null
+if ($claudeTarget -and ($WithInstructions -or $Uninstall)) { $claudeInstr = $claudeSpec }
+
 $blockBegin = '<!-- agent-delegation-kit:begin -->'
 $blockEnd   = '<!-- agent-delegation-kit:end -->'
 $policyMarker = 'Installed by agent-delegation-kit'
+
+# With the policy in place the main session is already the orchestrator, so an
+# orchestrator agent (one with an Agent(...) allow-list, i.e. triage-lead) would
+# be a second front door - two relays, double context, and it cannot reach MCP.
+# The policy counts as active if this run installs it or CLAUDE.md already
+# imports it, so a later plain reinstall does not bring triage-lead back.
+$policyActive = $false
+if ($claudeTarget) {
+    if ($WithInstructions) { $policyActive = $true }
+    elseif ((Test-Path $claudeSpec.ClaudeMd) -and [System.IO.File]::ReadAllText($claudeSpec.ClaudeMd).Contains($blockBegin)) {
+        $policyActive = $true
+    }
+}
+
+function Test-OrchestratorAgent {
+    param([string]$File)
+    $head = [System.IO.File]::ReadAllText($File)
+    return ($head -match '(?m)^tools:.*Agent\(')
+}
 
 function Remove-ClaudeInstructions {
     param($Spec)
@@ -205,7 +225,12 @@ foreach ($p in $plans) {
 
     $files = Get-ChildItem $p.Source -Filter $p.Filter
     $written = @()
+    $skippedOrch = @()
     foreach ($f in $files) {
+        if ($p.Name -eq 'Claude Code' -and $policyActive -and (Test-OrchestratorAgent $f.FullName)) {
+            $skippedOrch += $f.BaseName
+            continue
+        }
         $targetPath = Join-Path $p.Dest $f.Name
         if ((Test-Path $targetPath) -and ($known -notcontains $f.Name) -and (-not $Force)) {
             # A file we did not install already lives here. Do not clobber it.
@@ -237,11 +262,15 @@ foreach ($p in $plans) {
 
     Write-Host "$($p.Name) -> $($p.Dest)" -ForegroundColor Green
     Write-Host "  $($written.Count) file(s) installed" -NoNewline
-    if ($stale.Count -gt 0) { Write-Host ", $($stale.Count) stale removed" } else { Write-Host '' }
+    if ($stale.Count -gt 0) { Write-Host ", $($stale.Count) stale removed ($($stale -join ', '))" } else { Write-Host '' }
+    if ($skippedOrch.Count -gt 0) {
+        Write-Host "  skipped $($skippedOrch -join ', ') - the delegation policy makes every session the orchestrator" -ForegroundColor DarkGray
+    }
 }
 
 if ($null -ne $claudeInstr) {
-    $src = Join-Path $repo 'templates\claude-delegation.md'
+    # The built copy, with the shared routing rules and roster expanded in.
+    $src = Join-Path $repo 'build\instructions\claude-delegation.md'
     $ours = $true
     if ((Test-Path $claudeInstr.PolicyFile) -and -not $Force) {
         $ours = [System.IO.File]::ReadAllText($claudeInstr.PolicyFile).Contains($policyMarker)

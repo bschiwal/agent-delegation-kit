@@ -64,7 +64,6 @@ Built with profile **personal**.
 | code-reviewer | review | opus | Claude Opus 5 |
 | data-model-reviewer | review | opus | Claude Opus 5 |
 | debugger | deep-reasoning | opus | Claude Opus 5 |
-| delegation-router | deep-reasoning | opus | Claude Opus 5 |
 | doc-writer | write-prose | haiku | GPT-5.6 Luna |
 | implementer | implement | sonnet | Claude Sonnet 5 |
 | log-triager | summarize | haiku | GPT-5.6 Luna |

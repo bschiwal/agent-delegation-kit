@@ -2,6 +2,7 @@
 {
   "name": "architect",
   "role": "deep-reasoning",
+  "when": "Design first - more than a couple of files, or no obvious approach",
   "description": "Designs an implementation plan before code is written - files to touch, order of work, tradeoffs, failure modes. Use for anything spanning more than a couple of files, or where the approach is not obvious. Produces a plan, not code.",
   "claude": {
     "tools": "Read, Write, Grep, Glob, Bash, WebFetch, TodoWrite",

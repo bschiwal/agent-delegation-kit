@@ -28,8 +28,9 @@ cd agent-delegation-kit
 .\scripts\install.ps1 -Target claude
 ```
 
-This writes 15 agent files to `~\.claude\agents\`, which makes them available in
-every project on the machine.
+This writes the agent files to `~\.claude\agents\`, which makes them available in
+every project on the machine. That's 14 agents, or 13 with `-WithInstructions`,
+which skips `triage-lead` because the session itself orchestrates (see below).
 
 If PowerShell refuses to run the script:
 
@@ -96,12 +97,18 @@ knowing.
 
 ## Make every session a triage lead
 
-To have every new session delegate by default, without naming `triage-lead` each
-time:
+To have every new session orchestrate the agents itself, so you never have to name
+one:
 
 ```powershell
 .\scripts\install.ps1 -Target claude -WithInstructions
 ```
+
+With this installed, the installer leaves out `triage-lead` (and removes it if it
+was installed before). The session is already the orchestrator, and stacking a
+second one underneath it relays everything twice. `triage-lead` stays the
+orchestrator for Copilot and for Claude Code installs without this flag. Once the
+policy is in `CLAUDE.md`, a later plain reinstall still leaves `triage-lead` out.
 
 That copies the delegation policy to `~\.claude\agent-delegation.md` and adds one
 marked import block to `~\.claude\CLAUDE.md`:

@@ -80,7 +80,7 @@ When a specialist agent from this kit fits the task, hand off to it - it already
 carries the right model and the right instructions:
 
 <!-- BEGIN:agent-list -->
-`architect` `bulk-editor` `code-reviewer` `data-model-reviewer` `debugger` `delegation-router` `doc-writer` `implementer` `log-triager` `pbir-builder` `pr-scribe` `repo-scout` `security-reviewer` `test-author` `triage-lead`
+`architect` `bulk-editor` `code-reviewer` `data-model-reviewer` `debugger` `doc-writer` `implementer` `log-triager` `pbir-builder` `pr-scribe` `repo-scout` `security-reviewer` `test-author` `triage-lead`
 <!-- END:agent-list -->
 
 The highest-value pattern in the kit is **cheap model implements, premium Claude

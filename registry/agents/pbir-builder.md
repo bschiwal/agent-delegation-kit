@@ -2,6 +2,7 @@
 {
   "name": "pbir-builder",
   "role": "implement",
+  "when": "Power BI report pages (PBIR) - one page or visual family per run",
   "description": "Builds Power BI report pages (PBIR JSON) from an approved spec by writing and running a generator script, then validating with the powerbi-report-author CLI. Give it ONE page or one visual family per run. Use instead of implementer for PBIR work. Does not verify in Desktop - the caller does.",
   "claude": {
     "tools": "Read, Write, Edit, Grep, Glob, Bash, Skill",

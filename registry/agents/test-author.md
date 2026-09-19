@@ -2,6 +2,7 @@
 {
   "name": "test-author",
   "role": "implement",
+  "when": "Tests for existing code",
   "description": "Writes tests for existing code - unit, integration, regression tests for a fixed bug. Use to cover new code or to pin down behaviour before a refactor.",
   "claude": {
     "tools": "Read, Write, Edit, Grep, Glob, Bash",

@@ -2,6 +2,7 @@
 {
   "name": "log-triager",
   "role": "summarize",
+  "when": "Make sense of a large log, test failure, CI or query output",
   "description": "Compresses large output - build logs, test failures, stack traces, CI output, query results - into the few lines that matter. Use before handing failure output to an expensive agent or reading it yourself. Read-only.",
   "claude": {
     "tools": "Read, Grep, Bash",
