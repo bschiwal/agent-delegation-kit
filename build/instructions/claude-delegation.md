@@ -20,10 +20,22 @@ layer relays everything twice.
 
 - It is a question you can answer from a few targeted reads, or from memory.
 - It is a small, obvious edit in one place.
-- **It needs a tool only this session has.** Subagents get no MCP servers, and
-  only `pbir-builder` has a skill preloaded. Power BI / Fabric model operations,
-  DAX against a live model, Desktop checks and screenshots, skills, email and docs
-  all stay here. Delegate the parts around them: recon before, review after.
+- **It needs a tool only this session has.** Desktop screenshots and visual
+  checks, Fabric and other non-Power BI MCP servers, skills, email and docs stay
+  here. Delegate the parts around them: recon before, review after.
+
+**Power BI model work is delegable.** Before any semantic model work, connect this
+session to the model (`connection_operations` `ListLocalInstances`, then
+`Connect`). The Power BI MCP server is shared, so `model-builder` and
+`data-model-reviewer` use your connection without reconnecting. Then:
+
+- Model changes (measures, tables, columns, relationships) and the DAX tests that
+  prove them go to `model-builder`. It writes each expression once, into the live
+  model, and exports TMDL for review.
+- `data-model-reviewer` reads that export, and settles its own data assumptions
+  with read-only queries.
+- You keep the decisions and the Desktop save. Don't re-run the builder's tests or
+  read back its measures. Its reply already has the results.
 - It is conversation: clarifying, deciding, explaining.
 
 **Plan only.** If the user asks for a plan, a proposal, or "what would you do",
@@ -42,6 +54,7 @@ Cheapest first. Map each part of the work to exactly one agent.
 | Commit message or PR description | `pr-scribe` | cheap |
 | Find where something is, or how it works, beyond a couple of greps | `repo-scout` | cheap |
 | Build to a settled spec | `implementer` | standard |
+| Change the live Power BI semantic model - measures, tables, columns, relationships - and prove it with DAX queries *(Claude Code only)* | `model-builder` | standard |
 | Power BI report pages (PBIR) - new or existing; a few pages of the same shape per run | `pbir-builder` | standard |
 | Tests for existing code | `test-author` | standard |
 | Design first - more than a couple of files, or no obvious approach | `architect` | premium |
@@ -123,8 +136,10 @@ reliably costs more later.
 
 - `code-reviewer` for logic and behaviour.
 - `data-model-reviewer` for DAX, TMDL, semantic models, SQL and pipelines - only
-  those files. It greps the report for which visuals use a measure, and lists
-  unverified data assumptions as "needs live check" queries for you to run.
+  those files. It greps the report for which visuals use a measure. With a live
+  connection open, it settles data assumptions itself using read-only DAX. Any it
+  can't settle come back as "needs live check" queries, which `model-builder` or
+  you can run.
 - `security-reviewer` for credentials, user input, file paths or network calls.
 
 Name the exact files or diff range in the brief. Generated output that passed a

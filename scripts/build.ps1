@@ -252,6 +252,8 @@ function Get-BudgetFooter {
 # Before this, the main-session policy and triage-lead each carried a hand-written
 # copy, and the copies had already drifted.
 
+$claudeOnlyNames = @($parsed | Where-Object { $_.Meta.copilot -is [bool] -and $_.Meta.copilot -eq $false } | ForEach-Object { $_.Meta.name })
+
 $tierLabel = @{ haiku = 'cheap'; sonnet = 'standard'; opus = 'premium'; fable = 'frontier' }
 $tierOrder = @{ cheap = 0; standard = 1; premium = 2; frontier = 3 }
 
@@ -268,7 +270,9 @@ function Get-RosterTable {
         $model = $policy.roles.($a.Meta.role).claude.model
         $tier = $tierLabel[$model]
         if ($null -eq $tier) { $tier = $model }
-        $rows += [pscustomobject]@{ When = $a.Meta.when; Name = $a.Meta.name; Tier = $tier; Order = $tierOrder[$tier] }
+        $when = $a.Meta.when
+        if ($claudeOnlyNames -contains $a.Meta.name) { $when += ' *(Claude Code only)*' }
+        $rows += [pscustomobject]@{ When = $when; Name = $a.Meta.name; Tier = $tier; Order = $tierOrder[$tier] }
     }
     $lines = @('| Need | Agent | Tier |', '|---|---|---|')
     foreach ($r in ($rows | Sort-Object Order, Name)) {
@@ -347,6 +351,19 @@ foreach ($agent in $parsed) {
     $claudeText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body) + (Get-BudgetFooter $meta.claude.maxTurns)
     Write-Utf8NoBom (Join-Path $claudeOut "$($meta.name).md") $claudeText
 
+    # "copilot": false marks a Claude-Code-only agent - typically one whose job
+    # needs MCP tools that Copilot custom agents cannot reference the same way.
+    # Emitting it for Copilot would give Copilot an agent that cannot do its job.
+    if ($meta.copilot -is [bool] -and $meta.copilot -eq $false) {
+        $summary += [pscustomobject]@{
+            Agent   = $meta.name
+            Role    = $meta.role
+            Claude  = $role.claude.model
+            Copilot = '(Claude only)'
+        }
+        continue
+    }
+
     # ---- Copilot output ----
     $preferred = [string[]]$role.copilot
     if ($overrides.ContainsKey($meta.role)) { $preferred = [string[]]$overrides[$meta.role] }
@@ -393,8 +410,9 @@ foreach ($agent in $parsed) {
     $copilotExtra = Get-ExtraProperties $meta.copilot @('model')
     if ($null -ne $delegates -and $delegates.Count -gt 0) {
         # VS Code needs both: the 'agent' tool set to delegate at all, and the
-        # 'agents' list to say which custom agents it may call.
-        $copilotExtra['agents'] = [string[]]$delegates
+        # 'agents' list to say which custom agents it may call. Claude-only agents
+        # do not exist on the Copilot side, so they are left out of its list.
+        $copilotExtra['agents'] = [string[]]@($delegates | Where-Object { $claudeOnlyNames -notcontains $_ })
         $ctools = @()
         if ($copilotExtra.Contains('tools')) { $ctools = [string[]]$copilotExtra['tools'] }
         if ($ctools -notcontains 'agent') { $ctools += 'agent' }

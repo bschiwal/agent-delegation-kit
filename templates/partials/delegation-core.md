@@ -77,8 +77,10 @@ reliably costs more later.
 
 - `code-reviewer` for logic and behaviour.
 - `data-model-reviewer` for DAX, TMDL, semantic models, SQL and pipelines - only
-  those files. It greps the report for which visuals use a measure, and lists
-  unverified data assumptions as "needs live check" queries for you to run.
+  those files. It greps the report for which visuals use a measure. With a live
+  connection open, it settles data assumptions itself using read-only DAX. Any it
+  can't settle come back as "needs live check" queries, which `model-builder` or
+  you can run.
 - `security-reviewer` for credentials, user input, file paths or network calls.
 
 Name the exact files or diff range in the brief. Generated output that passed a

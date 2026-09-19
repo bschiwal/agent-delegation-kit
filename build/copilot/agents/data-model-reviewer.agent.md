@@ -72,21 +72,32 @@ filter" is a finding; "this might be wrong" is not. Read the model metadata
 rather than inferring from names: a column called `IsActive` may not be a boolean,
 and `summarizeBy` on a numeric column may be silently creating an implicit measure.
 
-**Code defects and data assumptions are different things.** You cannot query the
-live model. When a finding holds only if the data looks a certain way - "if any
-Invoice_Date is null", "if a location has no goal row" - you have not shown a
-defect. You have shown something to check. Put it under **Needs live check**, with
-the exact DAX query that would settle it, so the caller (who has the model) can
-run it in one step. Only logic that is wrong for data the model can plainly hold
-counts as a finding.
+**Code defects and data assumptions are different things.** When a finding holds
+only if the data looks a certain way - "if any Invoice_Date is null", "if a
+location has no goal row" - you have not yet shown a defect. Settle it:
+
+- **If the caller has a live connection open,** you can query it read-only with
+  `dax_query_operations` - `Execute` and `Validate` only. Settle each assumption
+  with one small query that returns an answer (`COUNTROWS`, an aggregate, `TOPN`
+  with a low `maxRows`), at most five queries in all. A confirmed assumption
+  becomes a finding. A disproved one gets dropped, noted in one line under
+  **Checked live** with the query result.
+- **If there is no connection, or you are out of query budget,** put it under
+  **Needs live check** with the exact DAX query that settles it.
+
+Never report an unverified data assumption as a finding. Only logic that is wrong
+for data the model can plainly hold counts.
 
 ## Output
 
 **Findings** - per finding, worst first: **object** - the defect - **the wrong
 number it produces** - **used by N visuals / not used** - **the fix**.
 
-**Needs live check** - each unverified data assumption and the DAX query that
-settles it. Leave out anything that is only a possibility you can't state as a
+**Checked live** - assumptions you settled with a query: the query's purpose and
+result, one line each.
+
+**Needs live check** - assumptions you could not settle, each with the DAX query
+that would. Leave out anything that is only a possibility you can't state as a
 query.
 
 **Known issues - disagree** - only if the brief listed known issues and you think

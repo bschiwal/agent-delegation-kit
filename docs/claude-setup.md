@@ -29,7 +29,7 @@ cd agent-delegation-kit
 ```
 
 This writes the agent files to `~\.claude\agents\`, which makes them available in
-every project on the machine. That's 14 agents, or 13 with `-WithInstructions`,
+every project on the machine. That's 15 agents, or 14 with `-WithInstructions`,
 which skips `triage-lead` because the session itself orchestrates (see below).
 
 If PowerShell refuses to run the script:
@@ -128,9 +128,33 @@ agent as the default main session replaces Claude Code's built-in system prompt,
 limits the session to that agent's tools, and switches the session to that agent's
 model. For `triage-lead` that means Sonnet with no Bash, no Edit, no MCP servers
 and no skills in every project. The instructions route work the same way while the
-main session keeps Opus, all its tools, MCP, skills and memory. The specialist
-agents get no MCP access, so the policy tells the main session to keep MCP and
-skill work itself and delegate the recon before it and the review after it.
+main session keeps Opus, all its tools, MCP, skills and memory.
+
+## Power BI model work
+
+Two agents can reach a live Power BI model through the Power BI modeling MCP:
+`model-builder` makes changes, and `data-model-reviewer` can run read-only DAX. The
+MCP server is shared across the session, so **connect the main session to the model
+first** and the agents use that connection without reconnecting. A good opening
+line for a model session:
+
+```
+> connect to the model I have open in Power BI Desktop
+```
+
+`model-builder` checks that the open connection matches the model named in its
+brief, and stops if it doesn't rather than connecting on its own. It works inside a
+transaction, tests every change with small DAX queries, and exports TMDL to
+`.claude/review/` for the reviewer. You still save in Desktop, which is what
+updates the project's own definition folder.
+
+Adding the MCP tools costs roughly 7K tokens per call for `model-builder`, and
+about 1K for the reviewer's single DAX tool. Both are Claude Code only - Copilot
+agents don't reference MCP servers the same way.
+
+Everything else that needs a main-session tool - Desktop screenshots, Fabric,
+skills - stays in the main session. The specialists handle the recon before it and
+the review after it.
 
 If you want the strict version in one repo, put `{ "agent": "triage-lead" }` in
 that repo's `.claude\settings.json`. The Claude Code docs only show this at project

@@ -338,6 +338,7 @@ that is chat-only and cannot drive an agent all surface as errors or warnings.
 | `triage-lead` | triage | Orchestrator for Copilot, or Claude Code without the delegation policy - also does "plan only" |
 | `implementer` | implement | Build to a settled spec |
 | `pbir-builder` | implement | Power BI report pages from a spec, via a generator script - one page per run |
+| `model-builder` | implement | Live Power BI model changes via the modeling MCP, tested with DAX - Claude Code only, uses your session's connection |
 | `test-author` | implement | Tests for existing code |
 | `bulk-editor` | bulk-edit | The same mechanical change across many files |
 | `repo-scout` | search | Where is X, how does Y work |

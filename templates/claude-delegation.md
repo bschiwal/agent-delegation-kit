@@ -20,10 +20,22 @@ layer relays everything twice.
 
 - It is a question you can answer from a few targeted reads, or from memory.
 - It is a small, obvious edit in one place.
-- **It needs a tool only this session has.** Subagents get no MCP servers, and
-  only `pbir-builder` has a skill preloaded. Power BI / Fabric model operations,
-  DAX against a live model, Desktop checks and screenshots, skills, email and docs
-  all stay here. Delegate the parts around them: recon before, review after.
+- **It needs a tool only this session has.** Desktop screenshots and visual
+  checks, Fabric and other non-Power BI MCP servers, skills, email and docs stay
+  here. Delegate the parts around them: recon before, review after.
+
+**Power BI model work is delegable.** Before any semantic model work, connect this
+session to the model (`connection_operations` `ListLocalInstances`, then
+`Connect`). The Power BI MCP server is shared, so `model-builder` and
+`data-model-reviewer` use your connection without reconnecting. Then:
+
+- Model changes (measures, tables, columns, relationships) and the DAX tests that
+  prove them go to `model-builder`. It writes each expression once, into the live
+  model, and exports TMDL for review.
+- `data-model-reviewer` reads that export, and settles its own data assumptions
+  with read-only queries.
+- You keep the decisions and the Desktop save. Don't re-run the builder's tests or
+  read back its measures. Its reply already has the results.
 - It is conversation: clarifying, deciding, explaining.
 
 **Plan only.** If the user asks for a plan, a proposal, or "what would you do",

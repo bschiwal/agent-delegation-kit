@@ -22,7 +22,7 @@ cd agent-delegation-kit
 
 This writes to:
 
-- `~\.copilot\agents\` - the 14 agents, available in every workspace
+- `~\.copilot\agents\` - the 14 Copilot agents (model-builder is Claude Code only), available in every workspace
 - `~\.copilot\instructions\` - the always-on routing rules (from
   `-WithInstructions`), so ad-hoc chat follows the cost policy too
 

@@ -122,6 +122,15 @@ fixed:
   assumptions;
 - reviews that run as soon as their inputs are settled, instead of after the build.
 
+A test after that run confirmed two things, using an agent with unrestricted
+tools. A subagent can use the Power BI modeling MCP, and it **shares the main
+session's live connection** (same connection and session ID, no reconnect). The
+eight modeling tool definitions add roughly 7K tokens per call. That made
+`model-builder` worthwhile: model changes and their DAX tests leave the main
+session, each expression is written once into the live model, and TMDL is
+exported for review. `data-model-reviewer` got the read-only DAX tool, so it can
+settle its own data assumptions.
+
 The model routing was never the problem. Each agent ran the
 model it was meant to. The problem was how many turns each run took, over how much
 context.

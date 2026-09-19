@@ -7,8 +7,8 @@ This repo generates agent profiles for two platforms from one source. Read
 
 **Never put a model name in an agent source.** Agents name a `role`;
 `registry/policy.json` maps roles to models. That indirection is the whole point -
-Copilot's catalogue changes every few weeks, and a model hardcoded in fourteen
-agent files is fourteen files to fix. `build.ps1` drops a stray `model` field and
+Copilot's catalogue changes every few weeks, and a model hardcoded in fifteen
+agent files is fifteen files to fix. `build.ps1` drops a stray `model` field and
 warns.
 
 ## Where to make a change
@@ -106,7 +106,7 @@ The prompts are the actual product; the scripts are plumbing. What makes them wo
 There is no test suite. Verify by hand:
 
 ```powershell
-.\scripts\build.ps1                  # must report 14 agents, no warnings
+.\scripts\build.ps1                  # must report 15 agents, no warnings
 .\scripts\build.ps1 -Preset work     # review roles must still be Claude
 .\scripts\refresh-models.ps1         # must parse ~29 models, no broken routes
 .\scripts\set-availability.ps1 -List # every role must resolve to something
