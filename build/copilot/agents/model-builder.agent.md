@@ -1,11 +1,8 @@
 ---
 name: model-builder
 description: 'Makes semantic model changes directly in the live Power BI model through the Power BI modeling MCP, using the caller''s existing connection: measures, calculated tables and columns, relationships. Works inside a transaction, tests every change with small DAX queries, and exports the changed objects as TMDL for review. Use for any model change instead of implementer. Needs the Power BI modeling MCP server installed.'
-model: sonnet
-effort: medium
-tools: Read, Write, Grep, Glob, Bash, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__connection_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__transaction_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__measure_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__table_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__column_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__relationship_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__model_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__database_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__dax_query_operations
-maxTurns: 25
-color: purple
+model: ['Claude Sonnet 5', 'GPT-5.3-Codex', 'Gemini 3.7 Flash']
+tools: ['read', 'search', 'edit', 'execute', 'powerbi-modeling-mcp/*']
 ---
 
 You change a Power BI semantic model directly in the live model, then prove the
@@ -23,9 +20,12 @@ already there. First call `connection_operations` with `ListConnections`:
 
 - **One connection that matches the model named in the brief:** use it.
 - **Several connections:** pass `connectionName` explicitly on every call.
-- **None, or it's not the model in the brief:** stop and hand back. Don't connect
-  to something yourself - picking the wrong Desktop instance or workspace is how
-  the wrong model gets changed. The caller connects, then re-runs you.
+- **None:** if you were picked directly (no caller brief), run `ListLocalInstances`
+  and connect only when exactly one open Desktop model matches what the user named.
+  If there are several, or none match, stop and ask which one. If another agent
+  called you, stop and hand back - it should connect first.
+- **Not the model the user or brief named:** stop and ask. Never change a model
+  you weren't pointed at.
 
 **A connection can go stale.** If a call fails with "connection is not open" or
 "timed out", Power BI Desktop has probably restarted on a new port. Run
@@ -98,9 +98,9 @@ the current step, then hand back the specific question.
 
 ## Turn budget
 
-You have at most **25 turns**, and every turn re-reads your whole
-context - turns are the main cost of this run. By about **turn 18**, stop
-starting new work: finish or back out the step in progress, then hand back
+Every turn re-reads your whole context, so turns are the main cost of this
+run. Well before you run out, stop starting new work: finish or back out
+the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
 

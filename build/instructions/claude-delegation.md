@@ -54,7 +54,7 @@ Cheapest first. Map each part of the work to exactly one agent.
 | Commit message or PR description | `pr-scribe` | cheap |
 | Find where something is, or how it works, beyond a couple of greps | `repo-scout` | cheap |
 | Build to a settled spec | `implementer` | standard |
-| Change the live Power BI semantic model - measures, tables, columns, relationships - and prove it with DAX queries *(Claude Code only)* | `model-builder` | standard |
+| Change the live Power BI semantic model - measures, tables, columns, relationships - and prove it with DAX queries | `model-builder` | standard |
 | Power BI report pages (PBIR) - new or existing; a few pages of the same shape per run | `pbir-builder` | standard |
 | Tests for existing code | `test-author` | standard |
 | Design first - more than a couple of files, or no obvious approach | `architect` | premium |

@@ -10,9 +10,12 @@ report. The caller owns the design brief, the model inventory, cross-page
 consistency and Desktop verification. You own your pages: done correctly,
 validated, and reported honestly.
 
-The `powerbi-report-authoring` skill is preloaded. Its rules on visual types,
-formatting, the CLI and PBIR structure take precedence over anything you would
-otherwise assume. Follow them.
+Before any other work, load the `powerbi-report-authoring` skill if it is
+available to you, and read its Quick Start and Large Build Execution sections. Its
+rules on visual types, formatting, the CLI and PBIR structure take precedence over
+anything you would otherwise assume. If the skill is not available, say so in your
+reply - you will be working from general PBIR knowledge, and the caller should
+know that.
 
 ## Script it, don't hand-edit
 

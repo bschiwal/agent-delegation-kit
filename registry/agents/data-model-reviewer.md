@@ -5,12 +5,15 @@
   "when": "Review DAX, TMDL, semantic model, SQL or pipeline changes - anything producing a number",
   "description": "Reviews semantic models, DAX, SQL and pipeline logic for wrong numbers - bad grain, non-additive measures summed, broken relationships, silent filter-context bugs. Use on Power BI/Fabric models, warehouse SQL and transformation code. Read-only.",
   "claude": {
-    "tools": "Read, Grep, Glob, Bash, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__dax_query_operations",
+    "tools": "Read, Grep, Glob, Bash",
     "maxTurns": 20,
     "color": "purple"
   },
   "copilot": {
     "tools": ["read", "search", "execute"]
+  },
+  "mcp": {
+    "powerbi-modeling": { "tools": ["dax_query_operations"], "copilot": "tools" }
   }
 }
 ---

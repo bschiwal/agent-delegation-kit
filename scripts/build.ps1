@@ -281,8 +281,47 @@ function Get-RosterTable {
     return ($lines -join "`n")
 }
 
+# --- MCP servers -------------------------------------------------------------
+# Agents declare MCP needs abstractly; registry/mcp.json says what each server is
+# called on each platform. Claude Code gets explicit mcp__<prefix>__<tool> names.
+# Copilot gets <server>/* ("copilot": "server" - the form VS Code documents) or
+# <server>/<tool> ("copilot": "tools" - narrower; VS Code ignores a tool it
+# cannot resolve, so a wrong form degrades to "no tool" rather than failing).
+
+$mcpRegistry = $null
+$mcpPath = Join-Path $repo 'registry\mcp.json'
+if (Test-Path $mcpPath) { $mcpRegistry = Get-Content $mcpPath -Raw | ConvertFrom-Json }
+
+function Get-McpTools {
+    param($Meta, [string]$Platform, [string]$File)
+    $out = @()
+    if ($null -eq $Meta.mcp) { return $out }
+    foreach ($s in $Meta.mcp.PSObject.Properties) {
+        $server = $null
+        if ($null -ne $mcpRegistry) { $server = $mcpRegistry.servers.($s.Name) }
+        if ($null -eq $server) { throw "${File}: MCP server '$($s.Name)' is not defined in registry/mcp.json." }
+        $tools = [string[]]$s.Value.tools
+        if ($Platform -eq 'claude') {
+            foreach ($t in $tools) { $out += "$($server.claude_prefix)__$t" }
+        }
+        elseif ($s.Value.copilot -eq 'server') {
+            $out += "$($server.copilot_server)/*"
+        }
+        else {
+            foreach ($t in $tools) { $out += "$($server.copilot_server)/$t" }
+        }
+    }
+    return $out
+}
+
 function Expand-Template {
-    param([string]$Text)
+    param([string]$Text, [string]$Platform = 'claude')
+    # Platform-specific passages: <!-- IF:claude --> ... <!-- ENDIF --> and the
+    # same for copilot. The other platform's blocks are dropped.
+    $Text = [regex]::Replace($Text, '(?s)<!--\s*IF:(\w+)\s*-->\r?\n?(.*?)<!--\s*ENDIF\s*-->\r?\n?', {
+        param($m)
+        if ($m.Groups[1].Value -eq $Platform) { return $m.Groups[2].Value } else { return '' }
+    })
     $partialDir = Join-Path $repo 'templates\partials'
     $out = [regex]::Replace($Text, '<!--\s*INCLUDE:([\w\-]+)\s*-->', {
         param($m)
@@ -292,7 +331,7 @@ function Expand-Template {
     })
     $roster = Get-RosterTable
     $out = [regex]::Replace($out, '<!--\s*GENERATE:roster\s*-->', { param($m) $roster })
-    if ($out -match '<!--\s*(INCLUDE|GENERATE):') { throw "Unexpanded template marker left in output: $($Matches[0])" }
+    if ($out -match '<!--\s*(INCLUDE|GENERATE):|<!--\s*(IF:\w+|ENDIF)\s*-->') { throw "Unexpanded template marker left in output: $($Matches[0])" }
     return $out
 }
 
@@ -330,6 +369,13 @@ foreach ($agent in $parsed) {
 
     # ---- Claude Code output ----
     $claudeExtra = Get-ExtraProperties $meta.claude @('model')
+    $claudeMcp = Get-McpTools $meta 'claude' $agent.File
+    if ($claudeMcp.Count -gt 0) {
+        $base = ''
+        if ($claudeExtra.Contains('tools')) { $base = [string]$claudeExtra['tools'] }
+        if ([string]::IsNullOrWhiteSpace($base)) { $claudeExtra['tools'] = ($claudeMcp -join ', ') }
+        else { $claudeExtra['tools'] = $base + ', ' + ($claudeMcp -join ', ') }
+    }
     if ($null -ne $delegates -and $delegates.Count -gt 0) {
         # Agent(a, b, c) is an allow-list: the orchestrator can spawn only these.
         $agentTool = 'Agent(' + ($delegates -join ', ') + ')'
@@ -348,7 +394,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $claudeExtra.Keys) { $lines += "${k}: $(Format-YamlValue $claudeExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $claudeText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body) + (Get-BudgetFooter $meta.claude.maxTurns)
+    $claudeText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body -Platform claude) + (Get-BudgetFooter $meta.claude.maxTurns)
     Write-Utf8NoBom (Join-Path $claudeOut "$($meta.name).md") $claudeText
 
     # "copilot": false marks a Claude-Code-only agent - typically one whose job
@@ -408,6 +454,12 @@ foreach ($agent in $parsed) {
     }
 
     $copilotExtra = Get-ExtraProperties $meta.copilot @('model')
+    $copilotMcp = Get-McpTools $meta 'copilot' $agent.File
+    if ($copilotMcp.Count -gt 0) {
+        $ct = @()
+        if ($copilotExtra.Contains('tools')) { $ct = [string[]]$copilotExtra['tools'] }
+        $copilotExtra['tools'] = [string[]]($ct + $copilotMcp)
+    }
     if ($null -ne $delegates -and $delegates.Count -gt 0) {
         # VS Code needs both: the 'agent' tool set to delegate at all, and the
         # 'agents' list to say which custom agents it may call. Claude-only agents
@@ -425,7 +477,7 @@ foreach ($agent in $parsed) {
     foreach ($k in $copilotExtra.Keys) { $lines += "${k}: $(Format-YamlValue $copilotExtra[$k])" }
     $lines += '---'
     $lines += ''
-    $copilotText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body) + (Get-BudgetFooter $null)
+    $copilotText = ($lines -join "`n") + "`n" + (Expand-Template $agent.Body -Platform copilot) + (Get-BudgetFooter $null)
     Write-Utf8NoBom (Join-Path $copilotOut "$($meta.name).agent.md") $copilotText
 
     $summary += [pscustomobject]@{

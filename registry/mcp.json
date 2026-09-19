@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "_intent": "Maps each MCP server an agent can use to the name it is registered under on each platform. Agents declare MCP needs abstractly (\"mcp\": { \"powerbi-modeling\": ... }) and build.ps1 emits the platform-specific tool names. If an agent cannot see its MCP tools on some machine, the fix is here, not in the agent.",
+  "_claude_prefix": "Claude Code names MCP tools mcp__<server>__<tool>. A server installed by a plugin gets mcp__plugin_<plugin>_<server>. Check the prefix with /mcp, or in any session's tool list.",
+  "_copilot_server": "VS Code references MCP tools as <server>/<tool> or <server>/* - <server> is the name the server is registered under. Check it in Chat > Configure Tools, or in the key of your mcp.json. VS Code silently ignores tools it cannot find, so a wrong name makes the agent run without the tools rather than fail.",
+
+  "servers": {
+    "powerbi-modeling": {
+      "description": "Power BI modeling MCP - live semantic model read/write and DAX queries.",
+      "claude_prefix": "mcp__plugin_powerbi-authoring_powerbi-modeling-mcp",
+      "copilot_server": "powerbi-modeling-mcp"
+    }
+  }
+}

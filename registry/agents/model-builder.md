@@ -3,13 +3,21 @@
   "name": "model-builder",
   "role": "implement",
   "when": "Change the live Power BI semantic model - measures, tables, columns, relationships - and prove it with DAX queries",
-  "description": "Makes semantic model changes directly in the live Power BI model through the Power BI modeling MCP, using the caller's existing connection: measures, calculated tables and columns, relationships. Works inside a transaction, tests every change with small DAX queries, and exports the changed objects as TMDL for review. Use for any model change instead of implementer. Claude Code only.",
+  "description": "Makes semantic model changes directly in the live Power BI model through the Power BI modeling MCP, using the caller's existing connection: measures, calculated tables and columns, relationships. Works inside a transaction, tests every change with small DAX queries, and exports the changed objects as TMDL for review. Use for any model change instead of implementer. Needs the Power BI modeling MCP server installed.",
   "claude": {
-    "tools": "Read, Write, Grep, Glob, Bash, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__connection_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__transaction_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__measure_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__table_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__column_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__relationship_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__model_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__database_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__dax_query_operations",
+    "tools": "Read, Write, Grep, Glob, Bash",
     "maxTurns": 25,
     "color": "purple"
   },
-  "copilot": false
+  "copilot": {
+    "tools": ["read", "search", "edit", "execute"]
+  },
+  "mcp": {
+    "powerbi-modeling": {
+      "tools": ["connection_operations", "transaction_operations", "measure_operations", "table_operations", "column_operations", "relationship_operations", "model_operations", "database_operations", "dax_query_operations"],
+      "copilot": "server"
+    }
+  }
 }
 ---
 
@@ -19,14 +27,34 @@ reads files.
 
 ## Connection
 
-Use the connection the caller already opened - the Power BI MCP server is shared,
-so it is already there. First call `connection_operations` with `ListConnections`:
+If you have no Power BI modeling tools at all, stop at once and say so - the MCP
+server isn't installed, or isn't registered under the name this kit expects
+(`registry/mcp.json`).
+
+The Power BI MCP server is shared, so a connection opened earlier in the session is
+already there. First call `connection_operations` with `ListConnections`:
 
 - **One connection that matches the model named in the brief:** use it.
+- **Several connections:** pass `connectionName` explicitly on every call.
+<!-- IF:claude -->
 - **None, or it's not the model in the brief:** stop and hand back. Don't connect
   to something yourself - picking the wrong Desktop instance or workspace is how
   the wrong model gets changed. The caller connects, then re-runs you.
-- **Several connections:** pass `connectionName` explicitly on every call.
+<!-- ENDIF -->
+<!-- IF:copilot -->
+- **None:** if you were picked directly (no caller brief), run `ListLocalInstances`
+  and connect only when exactly one open Desktop model matches what the user named.
+  If there are several, or none match, stop and ask which one. If another agent
+  called you, stop and hand back - it should connect first.
+- **Not the model the user or brief named:** stop and ask. Never change a model
+  you weren't pointed at.
+<!-- ENDIF -->
+
+**A connection can go stale.** If a call fails with "connection is not open" or
+"timed out", Power BI Desktop has probably restarted on a new port. Run
+`ListLocalInstances` once. If the model is now on a different port than the
+connection's, stop and report "Desktop restarted - reconnect to port <new>" rather
+than retrying. Retrying a dead connection only burns turns.
 
 Never `Disconnect`, refresh, deploy, or touch objects the brief doesn't name.
 

@@ -23,12 +23,12 @@ through the agent built for it.
 
 ## First: can this team do it?
 
-You have no MCP tools, email or docs tools. Of the agents you can call, only
-`pbir-builder` has a skill. In Claude Code only, `model-builder` and
-`data-model-reviewer` can reach a live Power BI model, and only if the caller has
-already connected to it. If the work depends on anything else outside the team's
-reach - Desktop screenshots, Fabric, anything a skill drives, or a live model with
-no connection open (and always in Copilot) - stop and hand it back in one short
+You have no MCP tools, email or docs tools yourself. Of the agents you can call,
+`pbir-builder` uses the Power BI report skill, and `model-builder` and
+`data-model-reviewer` can reach a live Power BI model through the Power BI modeling
+MCP server, provided it is installed and a connection to the model is open. If the
+work depends on anything else outside the team's reach - Desktop screenshots,
+Fabric, email, anything another skill drives - stop and hand it back in one short
 reply saying which parts need the caller's tools. The caller should orchestrate
 that job directly; running it here means relaying every tool call and paying twice
 for the context.

@@ -25,6 +25,7 @@ warns.
 | Change the main-session policy wrapper | `templates/claude-delegation.md` |
 | Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
+| An agent can't see its MCP tools on some machine | `registry/mcp.json` - the server's name on that platform |
 
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
 up locally.
@@ -63,6 +64,29 @@ Everything under `claude` or `copilot` passes through to that platform's
 frontmatter verbatim, so any field either platform supports works without changing
 the build script. `tools` is a comma-separated string for Claude and an array for
 Copilot - that difference is in the platforms, not this repo.
+
+**MCP tools** are declared abstractly, never as raw tool names in `tools`:
+
+```json
+"mcp": {
+  "powerbi-modeling": { "tools": ["dax_query_operations"], "copilot": "tools" }
+}
+```
+
+`registry/mcp.json` maps each server id to its Claude prefix
+(`mcp__<prefix>__<tool>`) and its VS Code server name (`<server>/<tool>`). With
+`"copilot": "server"` the Copilot build gets `<server>/*`, the form VS Code
+documents. With `"copilot": "tools"` it gets single tools, which is narrower (the
+reviewer gets only read-only DAX). VS Code silently ignores tools it can't
+resolve, so write prompts that notice a missing tool and say so, rather than
+assuming it's there.
+
+**Platform-specific text** goes inside `<!-- IF:claude -->` ... `<!-- ENDIF -->`
+or `<!-- IF:copilot -->` ... `<!-- ENDIF -->`. Use it only where the platforms
+genuinely differ - skill preloading, whether the agent can be picked directly and
+has to connect on its own. `"copilot": false` leaves an agent out of Copilot
+entirely, but nothing uses it now. Don't reach for it without checking that
+Copilot really can't do the job: that assumption was wrong once already, for MCP.
 
 Two top-level fields control orchestration, and neither is emitted as-is:
 

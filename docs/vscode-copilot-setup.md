@@ -22,7 +22,7 @@ cd agent-delegation-kit
 
 This writes to:
 
-- `~\.copilot\agents\` - the 14 Copilot agents (model-builder is Claude Code only), available in every workspace
+- `~\.copilot\agents\` - the 15 agents, available in every workspace
 - `~\.copilot\instructions\` - the always-on routing rules (from
   `-WithInstructions`), so ad-hoc chat follows the cost policy too
 
@@ -35,7 +35,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ## 3. Confirm
 
 Reload the VS Code window (`Ctrl+Shift+P` -> *Developer: Reload Window*), open
-Chat, and click the agent dropdown above the input box. The 14 agents should be
+Chat, and click the agent dropdown above the input box. The 15 agents should be
 listed. `/agents` opens **Configure Custom Agents** if you want to inspect or edit
 one.
 
@@ -55,6 +55,53 @@ managed org: if your admin has disabled a model, the agent falls through to the
 next instead of failing. It also means the fallback order encodes intent - for
 review agents it is Claude first, all the way down, with GPT-6 Astra only as a
 last-resort backstop.
+
+## Power BI model agents
+
+`model-builder` changes a live Power BI model, and `data-model-reviewer` runs
+read-only DAX to check its own assumptions. Both need the **Power BI modeling MCP
+server** installed in VS Code. `pbir-builder` uses the **powerbi-report-authoring**
+skill, and says so in its reply if it can't load it.
+
+**1. Tell the kit your server's name.** VS Code references MCP tools as
+`<server>/<tool>`, where `<server>` is whatever name the server is registered
+under on your machine. To find it, open Chat, click the tools icon (**Configure
+Tools**), and look at the heading the Power BI modeling tools are grouped under.
+Or check the key in your `mcp.json`. If it isn't `powerbi-modeling-mcp`, edit
+`copilot_server` in [`registry/mcp.json`](../registry/mcp.json) and reinstall:
+
+```powershell
+.\scripts\install.ps1 -Target copilot -Preset work
+```
+
+VS Code **ignores tools it can't find without warning**, so a wrong name doesn't
+error. The agent just runs without its tools, and `model-builder` says so up
+front.
+
+**2. Test it** with a Power BI model open in Desktop. Pick `model-builder` in the
+agent dropdown and send:
+
+```
+Read-only check: connect to the model I have open in Desktop, then report the
+connection name and the number of measures. Don't change anything.
+```
+
+A connection name and a measure count mean it works.
+
+**How connections work here.** In Claude Code a subagent was confirmed to reuse
+the main session's connection. In Copilot you often pick `model-builder` directly
+from the dropdown, so it may have no caller to inherit a connection from. The
+Copilot build of `model-builder` therefore connects by itself, but only when
+exactly one open Desktop model matches what you named, and asks you otherwise.
+Whether a connection opened in one Copilot chat carries into an agent that
+`triage-lead` calls hasn't been tested yet.
+
+**The reviewer's DAX tool is granted singly** (`<server>/dax_query_operations`),
+so it can only query, not change the model. VS Code documents the whole-server
+form (`<server>/*`), and the single-tool form comes from GitHub's custom agent
+reference. If VS Code doesn't resolve the single tool, the reviewer runs without
+it and hands its data questions back as "needs live check" queries. Nothing
+breaks.
 
 ## Project-scoped install
 

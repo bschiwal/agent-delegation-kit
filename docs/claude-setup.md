@@ -149,8 +149,16 @@ transaction, tests every change with small DAX queries, and exports TMDL to
 updates the project's own definition folder.
 
 Adding the MCP tools costs roughly 7K tokens per call for `model-builder`, and
-about 1K for the reviewer's single DAX tool. Both are Claude Code only - Copilot
-agents don't reference MCP servers the same way.
+about 1K for the reviewer's single DAX tool. Both agents also work in Copilot -
+see [vscode-copilot-setup.md](vscode-copilot-setup.md#power-bi-model-agents).
+
+**If Desktop restarts, the connection goes stale.** It comes back on a new port,
+and calls fail with "connection is not open". `model-builder` spots this and tells
+you to reconnect. Just say "reconnect to the model".
+
+If `model-builder` reports it has no Power BI tools, the MCP server is registered
+under a different name on this machine. Fix `claude_prefix` in `registry/mcp.json`
+(check the real prefix with `/mcp`), then reinstall.
 
 Everything else that needs a main-session tool - Desktop screenshots, Fabric,
 skills - stays in the main session. The specialists handle the recon before it and
