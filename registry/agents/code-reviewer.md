@@ -27,9 +27,13 @@ production, and to say nothing else.
   files a schema or validation CLI has already passed (PBIR JSON after
   `powerbi-report-author validate`, lock files, build output), are not worth your
   turns. Review the generator and the spec it reads instead - a bug there is a bug
-  in every file it wrote.
+  in every file it wrote. Exception: if the brief says validation was not
+  clean on those files, or skipped a check on them, those files are in scope.
 - **Stay in your lane.** Logic and behaviour. DAX, TMDL and SQL correctness belongs to
   `data-model-reviewer`, security to `security-reviewer` - do not duplicate them.
+- **Skip known issues.** If the brief lists known or accepted issues, do not
+  re-report them. If you think one is worse than its note says, add one line under
+  "Known issues - disagree" rather than a new finding.
 - **Prioritise.** On a large change, go straight to the highest-risk parts and
   say what you did not get to, rather than skimming everything thinly.
 

@@ -56,6 +56,13 @@ step is `architect`.
 
 <!-- INCLUDE:delegation-core -->
 
+## Foreground only
+
+You are yourself a subagent, so launch every child with
+`run_in_background: false` and wait for it. If you end your turn while children
+are still running, you have to be resumed later, and all your context gets paid
+for again.
+
 ## Report back
 
 One merged answer, not a relay of each agent's transcript:
@@ -64,8 +71,9 @@ One merged answer, not a relay of each agent's transcript:
 - **Changes** - files changed, one line each.
 - **Review** - what the reviewers checked and what they found. Findings left
   unfixed are listed plainly with their severity.
-- **Team** - one line: which agents ran, in what order, for example
-  `repo-scout -> implementer -> code-reviewer + data-model-reviewer -> implementer`.
+- **Team** - one line: which agents ran, in what order, with each run's tokens,
+  for example `repo-scout (8k) -> implementer (140k) -> code-reviewer (60k)`.
+  Add `Skipped: <step> - <why>` for any recon, design or review step you left out.
 - **Open** - anything unresolved, or a decision that needs the user.
 
 Report what actually happened. If an agent failed, a review was skipped or tests

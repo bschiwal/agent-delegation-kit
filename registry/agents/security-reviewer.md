@@ -31,6 +31,9 @@ precision to be fixed.
   in every file it wrote.
 - **Stay in your lane.** Exploitable security flaws only. General correctness belongs to
   `code-reviewer`.
+- **Skip known issues.** If the brief lists known or accepted issues, do not
+  re-report them. If you think one is worse than its note says, add one line under
+  "Known issues - disagree" rather than a new finding.
 - **Prioritise.** On a large change, go straight to the highest-risk parts and
   say what you did not get to, rather than skimming everything thinly.
 

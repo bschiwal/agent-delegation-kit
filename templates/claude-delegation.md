@@ -32,12 +32,22 @@ steps run in parallel - and run nothing until they say go.
 
 <!-- INCLUDE:delegation-core -->
 
+## Background runs
+
+You are the main session, so you are notified when a background agent finishes.
+Launch independent agents in the background (`run_in_background: true`) and keep
+working - for example, update docs or run your own live-model checks while the
+builders and the reviewer run. Use the foreground only when your very next step
+needs that agent's result.
+
 ## Report
 
 - **One merged answer**, not a relay of each agent's output.
-- **End with the team line** whenever agents ran, naming the chain, for example
-  `Team: repo-scout -> pbir-builder x3 -> code-reviewer + data-model-reviewer`.
-  A code change with no reviewer in that line means the review was skipped - say
-  why.
-- **Report honestly.** If a run failed, hit its limit, a review was skipped or
-  tests were not run, say so.
+- **End with the team line** whenever agents ran - the chain, with each run's
+  tokens, for example
+  `Team: repo-scout (8k) -> pbir-builder x2 (92k, 61k) -> data-model-reviewer (57k)`.
+- **Name skipped steps.** If the policy called for recon, design or a review and
+  you did it yourself or skipped it, add `Skipped: <step> - <why>`. A code change
+  with no reviewer in the team line needs that line.
+- **Report honestly.** If a run failed, hit its limit, a check did not run, a
+  review was skipped or tests were not run, say so.

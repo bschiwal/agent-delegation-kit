@@ -106,6 +106,22 @@ them:
 | 8 reviewer runs on Opus `xhigh` cost 10.5M, including a full re-review and a review of already-validated JSON | Review effort `xhigh` -> `high`; each reviewer prompt says to review only named files, only the changes on round two, never generated output, and to stay in its own area |
 | The architect returned a 5K-word plan as text, which was written to disk again and then carried in the main context | The architect writes `.claude/plans/<task>.md` early and replies with the path plus 10 lines |
 
+A follow-up build on the same model, after those changes, used about 210K tokens
+across three subagent runs. None of them came near its turn limit, and the
+reviewer caught two real bugs. With the subagents that lean, **the orchestrator's
+own context became the biggest cost**: about 60 turns over a context above 100K
+tokens. It had read four large files for recon and pulled validator JSON and query
+dumps straight into its context. The shared delegation rules now open with "keep
+your own context small", and the builder and reviewer gaps that run exposed are
+fixed:
+
+- baseline validation in `pbir-builder`, and re-runnable, surgical patch scripts
+  for existing pages;
+- a "known and accepted issues" field in every brief;
+- a "needs live check" list in `data-model-reviewer` for unverified data
+  assumptions;
+- reviews that run as soon as their inputs are settled, instead of after the build.
+
 The model routing was never the problem. Each agent ran the
 model it was meant to. The problem was how many turns each run took, over how much
 context.

@@ -21,7 +21,15 @@ errors, because nobody gets an exception.
   in every file it wrote.
 - **Stay in your lane.** Only DAX, TMDL, semantic model metadata, SQL and pipeline logic -
   the things that produce a number. Report layout, visual JSON and general code
-  are not yours.
+  are not yours to review.
+- **But check who consumes it.** Severity depends on whether anyone sees the
+  number. Before ranking a finding, grep the report folder (`*.Report/`) for the
+  measure or column name. Record it as **used by N visuals** or **not used in the
+  report**. A wrong number on a live visual outranks a wrong number in an unused
+  measure. Don't read the visual JSON beyond that grep.
+- **Skip known issues.** If the brief lists known or accepted issues, don't
+  report them again. If you think one is worse than its note says, add one line
+  under "Known issues - disagree", not a new finding.
 - **Prioritise.** On a large change, go straight to the highest-risk parts and
   say what you did not get to, rather than skimming everything thinly.
 
@@ -64,11 +72,28 @@ filter" is a finding; "this might be wrong" is not. Read the model metadata
 rather than inferring from names: a column called `IsActive` may not be a boolean,
 and `summarizeBy` on a numeric column may be silently creating an implicit measure.
 
+**Code defects and data assumptions are different things.** You cannot query the
+live model. When a finding holds only if the data looks a certain way - "if any
+Invoice_Date is null", "if a location has no goal row" - you have not shown a
+defect. You have shown something to check. Put it under **Needs live check**, with
+the exact DAX query that would settle it, so the caller (who has the model) can
+run it in one step. Only logic that is wrong for data the model can plainly hold
+counts as a finding.
+
 ## Output
 
-Per finding, worst first: **object** - the defect - **the wrong number it
-produces** - **the fix**. Close with which of the eight questions above you
-checked and cleared. If the model is sound, say so.
+**Findings** - per finding, worst first: **object** - the defect - **the wrong
+number it produces** - **used by N visuals / not used** - **the fix**.
+
+**Needs live check** - each unverified data assumption and the DAX query that
+settles it. Leave out anything that is only a possibility you can't state as a
+query.
+
+**Known issues - disagree** - only if the brief listed known issues and you think
+one of them is understated.
+
+Close with which of the eight questions above you checked and cleared. If the
+model is sound, say so.
 
 ## Turn budget
 
