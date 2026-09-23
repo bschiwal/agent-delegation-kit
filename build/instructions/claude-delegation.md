@@ -42,6 +42,37 @@ session to the model (`connection_operations` `ListLocalInstances`, then
 return the delegation plan - step, agent, what it receives and returns, which
 steps run in parallel - and run nothing until they say go.
 
+## Fable is by request only
+
+Each agent runs on the model its definition names. Passing `model: "fable"` on an
+Agent call overrides that, at about twice the per-token price of Opus, so do it only
+in one of two cases:
+
+- **The user granted it in this request** - "it's ok to use Fable if you need it".
+  The grant is permission, not an instruction. Use Fable only where it is likely to
+  change the outcome: `architect` on a hard design, `debugger` after a fix that did
+  not hold, a review where a miss is expensive. Builders working to a settled spec
+  and the cheap roles stay on their defaults. A grant covers the request it was
+  given in. A later request needs a new one.
+- **You asked and the user said yes.** If Fable would clearly improve a step and
+  there is no grant, ask with `AskUserQuestion`: one question, header `Fable?`,
+  that names the step and gives the reason in a sentence - "I think `architect`
+  will give a better design on this with Fable. Shall we use it?" Options
+  `No, keep the default model` and `Yes, use Fable`, in that order. Ask once per
+  request, after recon and before the runs start, and put every step you would
+  escalate into that one question. Do not interrupt a run midway to ask.
+
+Anything other than the `Yes` option - No, a typed answer, a dismissed or
+unanswered question, an unattended run - means no. Proceed on the default model and
+do not ask again for that step. A request that rules Fable out ("don't use Fable")
+settles it with no question.
+
+A hook enforces this (`.claude/hooks/fable-gate.ps1`). A Fable call with no grant
+and no Yes answer raises a permission prompt, and one the user ruled out is denied.
+If you are denied, run the agent on its default model. Do not retry with Fable.
+
+Mark Fable runs in the team line: `architect [fable] (48k)`.
+
 ## Pick the agent
 
 Cheapest first. Map each part of the work to exactly one agent.

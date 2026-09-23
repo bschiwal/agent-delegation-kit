@@ -123,6 +123,39 @@ The install only ever adds or removes that block. Anything else in your
 `CLAUDE.md` is left alone, a reinstall does not add a second copy, and
 `-Uninstall` removes the block and the policy file.
 
+### Fable by request only
+
+`-WithInstructions` also installs a Fable gate. Subagents run on the model their
+definition names, and the session never escalates one to Fable (about twice Opus
+per token) unless you allow it:
+
+- **Grant it in the request.** "Redesign the loader - it's ok to use Fable if you
+  need it." The session uses Fable only on the steps where it is likely to matter,
+  and marks them in the team line.
+- **Or answer its question.** Without a grant, the session may ask once per
+  request: "I think `architect` will give a better design on this with Fable.
+  Shall we use it?" Only `Yes, use Fable` counts. No, a typed answer or a
+  dismissed question all mean no, and it carries on with the default model.
+- **Or rule it out.** "Don't use Fable" in the request blocks it outright.
+
+The policy text tells the session this. A `PreToolUse` hook enforces it:
+`~\.claude\hooks\fable-gate.ps1`, registered on the `Agent` tool in
+`~\.claude\settings.json`. For project scope it goes in `.claude\settings.local.json`,
+because the command holds an absolute path. The hook reads the transcript and
+checks only your latest request and any answers since. If it finds a grant or a
+Yes, it stays out of the way. If you ruled Fable out, it denies the call.
+Otherwise it raises Claude Code's permission prompt. There is no timeout, so an
+interactive session waits for you. An unattended run (`claude -p`, the SDK) has
+nobody to approve, so it stays on the default model.
+
+The installer changes only its own hook entry and leaves the rest of
+`settings.json` alone. It keeps the previous file as `settings.json.kit-backup`.
+Windows PowerShell's JSON writer does re-indent the file. `-Uninstall` removes the
+entry and the script.
+
+Switching the main session itself to Fable (`/model`) is your call and is not
+gated.
+
 **Why instructions rather than `"agent": "triage-lead"` in settings.** Setting an
 agent as the default main session replaces Claude Code's built-in system prompt,
 limits the session to that agent's tools, and switches the session to that agent's

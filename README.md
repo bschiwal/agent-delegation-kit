@@ -49,7 +49,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 | `.\scripts\install.ps1 -Target claude` | Claude Code only |
 | `.\scripts\install.ps1 -Target copilot` | Copilot only |
 | `.\scripts\install.ps1 -Preset work` | Apply the workplace model policy - your organization's version lives in the gitignored `registry/policy.local.json` (see [docs/vscode-copilot-setup.md](docs/vscode-copilot-setup.md#your-organizations-model-policy-local-files)) |
-| `.\scripts\install.ps1 -WithInstructions` | **Recommended.** Every Claude Code session orchestrates the agents itself (no need to name them); also installs Copilot model-routing rules |
+| `.\scripts\install.ps1 -WithInstructions` | **Recommended.** Every Claude Code session orchestrates the agents itself (no need to name them), with Fable held back until you allow it ([Fable by request only](#fable-by-request-only)); also installs Copilot model-routing rules |
 | `.\scripts\install.ps1 -Scope project -Path C:\repos\my-app` | Install into one repo, to commit and share with a team |
 | `.\scripts\install.ps1 -Uninstall` | Remove everything this kit installed |
 
@@ -68,6 +68,10 @@ exists and the kit did not create it, the install skips it and tells you; add
 | Copilot (VS Code) | project | `<repo>\.github\agents\` |
 | Copilot instructions | user | `~\.copilot\instructions\` |
 | Copilot instructions | project | `<repo>\.github\instructions\` |
+| Claude delegation policy (`-WithInstructions`) | user | `~\.claude\agent-delegation.md`, imported from `~\.claude\CLAUDE.md` |
+| Claude delegation policy (`-WithInstructions`) | project | `<repo>\.claude\agent-delegation.md`, imported from `<repo>\CLAUDE.md` |
+| Fable gate hook (`-WithInstructions`) | user | `~\.claude\hooks\fable-gate.ps1`, registered in `~\.claude\settings.json` |
+| Fable gate hook (`-WithInstructions`) | project | `<repo>\.claude\hooks\fable-gate.ps1`, registered in `<repo>\.claude\settings.local.json` |
 
 VS Code also reads `.claude/agents`, so a project-scope install gives Copilot two
 copies of each agent. Use `-Target copilot -Scope project` if you only want one.
@@ -110,7 +114,8 @@ Team: repo-scout -> pbir-builder x3 -> code-reviewer + data-model-reviewer
 ```
 
 A code change whose team line has no reviewer means the review was skipped, so ask
-for it. The policy is strong guidance, not an enforced rule.
+for it. The policy is strong guidance, not an enforced rule - except for
+[Fable](#fable-by-request-only), which a hook enforces.
 
 **Claude Code.** `-WithInstructions` adds the policy to `~\.claude\CLAUDE.md`
 through one marked import block, so every session orchestrates on Opus with its
@@ -133,6 +138,43 @@ ask `architect`, which writes the plan to `.claude/plans/`.
 The routing rules live once, in `templates/partials/delegation-core.md`, and are
 built into both the Claude Code policy and `triage-lead`, so the two can't drift
 apart.
+
+### Fable by request only
+
+Claude Fable costs about twice Opus per token. Every agent runs on the model its
+role names, and the Claude Code main session escalates a subagent to Fable only
+when you allow it:
+
+| You... | What happens |
+|---|---|
+| Grant it in the request: "it's ok to use Fable if you need it" | Fable goes only to the steps where it is likely to change the outcome - a hard `architect` design, a `debugger` run after a fix that did not hold, a review where a miss is expensive. Builders and cheap roles stay on their defaults. |
+| Say nothing | If Fable would clearly help, the session asks once, before the runs start: "I think `architect` will give a better design on this with Fable. Shall we use it?" Only picking **Yes, use Fable** counts. No, a typed answer or a dismissed question all mean no. |
+| Rule it out: "don't use Fable" | Blocked, no question. |
+
+A grant covers only the request it was given in. Fable runs are marked in the team
+line: `architect [fable] (48k)`.
+
+Unlike the rest of the policy, this rule is **enforced**. `-WithInstructions`
+installs a `PreToolUse` hook, `hooks/fable-gate.ps1`, on the Agent tool. It reads
+your latest request, and any answers you gave since, from the session transcript.
+If it finds a grant or a Yes, it lets the call through. If you ruled Fable out, it
+denies the call. Otherwise it raises Claude Code's permission prompt, so the model
+cannot escalate on its own.
+
+Limits:
+
+- The prompt has no timeout, so an interactive session waits for you. An unattended
+  run (`claude -p`, the SDK) has nobody to approve and stays on the default model.
+- Grants are recognised by wording. When it is unsure, the hook asks rather than
+  allows.
+- Switching the main session itself to Fable with `/model` is your call and is not
+  gated.
+
+The installer changes only its own hook entry in `settings.json`, backs the file up
+to `settings.json.kit-backup`, and `-Uninstall` removes the entry. Details are in
+[docs/claude-setup.md](docs/claude-setup.md#fable-by-request-only). This is
+Claude Code only for now. Copilot fixes each agent's model, so it would need a
+different mechanism.
 
 ### GitHub Copilot (VS Code)
 
@@ -362,7 +404,11 @@ registry/
   policy.json       roles -> models. The file you edit to change routing.
   agents/           agent sources, one per agent
 templates/
-  model-routing.instructions.md   always-on rules; tables filled in at build
+  claude-delegation.md            Claude Code main-session policy, incl. the Fable rule
+  partials/delegation-core.md     routing rules shared by that policy and triage-lead
+  model-routing.instructions.md   always-on Copilot rules; tables filled in at build
+hooks/
+  fable-gate.ps1      PreToolUse hook: Fable only by grant or a Yes answer
 scripts/
   build.ps1           registry -> build/
   install.ps1         build/ -> Claude Code and Copilot

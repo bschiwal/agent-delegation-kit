@@ -23,6 +23,7 @@ warns.
 | Record which models your org actually allows | `scripts/set-availability.ps1` - do not hand-edit availability.json |
 | Change how work is routed to agents (both orchestrators) | `templates/partials/delegation-core.md` |
 | Change the main-session policy wrapper | `templates/claude-delegation.md` |
+| Change when a subagent may run on Fable | `templates/claude-delegation.md` (the rule) and `hooks/fable-gate.ps1` (the enforcement) - keep them in step |
 | Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
 | An agent can't see its MCP tools on some machine | `registry/mcp.json` - the server's name on that platform |

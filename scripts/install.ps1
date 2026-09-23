@@ -104,11 +104,16 @@ if ($Target -eq 'copilot' -or $Target -eq 'both') {
 # inside a marked block. CLAUDE.md belongs to the user, so the kit only ever adds
 # or removes its own block and never rewrites anything else in the file.
 
+# The Fable gate hook ships with the policy: the policy says Fable is by request
+# only, the hook enforces it. Project scope registers it in settings.local.json,
+# which is not committed, because the hook command holds an absolute path.
 if ($Scope -eq 'user') {
     $claudeSpec = [pscustomobject]@{
         PolicyFile = Join-Path $userHome '.claude\agent-delegation.md'
         ClaudeMd   = Join-Path $userHome '.claude\CLAUDE.md'
         Import     = '@~/.claude/agent-delegation.md'
+        HookFile   = Join-Path $userHome '.claude\hooks\fable-gate.ps1'
+        Settings   = Join-Path $userHome '.claude\settings.json'
     }
 }
 else {
@@ -116,6 +121,8 @@ else {
         PolicyFile = Join-Path $Path '.claude\agent-delegation.md'
         ClaudeMd   = Join-Path $Path 'CLAUDE.md'
         Import     = '@.claude/agent-delegation.md'
+        HookFile   = Join-Path $Path '.claude\hooks\fable-gate.ps1'
+        Settings   = Join-Path $Path '.claude\settings.local.json'
     }
 }
 $claudeTarget = ($Target -eq 'claude' -or $Target -eq 'both')
@@ -145,9 +152,97 @@ function Test-OrchestratorAgent {
     return ($head -match '(?m)^tools:.*Agent\(')
 }
 
+# Adds or removes the kit's PreToolUse entry in a Claude settings file. The entry
+# is recognised by its command naming fable-gate.ps1; every other setting and hook
+# is kept. Writes only when something changes, after copying the file to
+# <name>.kit-backup. Returns a short description of what it did, or $null.
+function Set-FableGateHook {
+    param([string]$SettingsPath, [string]$HookFile, [switch]$Remove)
+
+    $hadFile = Test-Path $SettingsPath
+    if ($hadFile) {
+        $raw = [System.IO.File]::ReadAllText($SettingsPath)
+        if ([string]::IsNullOrWhiteSpace($raw)) { $settings = New-Object PSObject }
+        else { $settings = $raw | ConvertFrom-Json }
+    }
+    else {
+        if ($Remove) { return $null }
+        $settings = New-Object PSObject
+    }
+
+    $command = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' + $HookFile + '"'
+    $hooks = $settings.hooks
+    $groups = @()
+    if ($null -ne $hooks -and $null -ne $hooks.PreToolUse) { $groups = @($hooks.PreToolUse) }
+
+    # Drop our hook from every group, and any group it leaves empty.
+    $found = $false
+    $alreadyCurrent = $false
+    $kept = @()
+    foreach ($g in $groups) {
+        if ($null -eq $g) { continue }
+        $inner = @($g.hooks | Where-Object { $null -ne $_ })
+        $others = @($inner | Where-Object { "$($_.command)" -notmatch 'fable-gate\.ps1' })
+        if ($others.Count -ne $inner.Count) {
+            $found = $true
+            if ($inner.Count -eq 1 -and $inner[0].command -eq $command -and $g.matcher -eq 'Agent|Task') { $alreadyCurrent = $true }
+            if ($others.Count -eq 0) { continue }
+            $g.hooks = $others
+        }
+        $kept += $g
+    }
+
+    if ($Remove -and -not $found) { return $null }
+    if (-not $Remove -and $alreadyCurrent) { return 'already registered' }
+
+    if (-not $Remove) {
+        $kept += [pscustomobject][ordered]@{
+            matcher = 'Agent|Task'
+            hooks   = @([pscustomobject][ordered]@{ type = 'command'; command = $command; timeout = 15 })
+        }
+    }
+
+    if ($null -eq $hooks) {
+        $hooks = New-Object PSObject
+        $settings | Add-Member -NotePropertyName hooks -NotePropertyValue $hooks
+    }
+    if ($kept.Count -gt 0) {
+        if ($null -eq $hooks.PSObject.Properties['PreToolUse']) {
+            $hooks | Add-Member -NotePropertyName PreToolUse -NotePropertyValue $kept
+        }
+        else { $hooks.PreToolUse = $kept }
+    }
+    else {
+        $hooks.PSObject.Properties.Remove('PreToolUse')
+        if (@($hooks.PSObject.Properties).Count -eq 0) { $settings.PSObject.Properties.Remove('hooks') }
+    }
+
+    if ($hadFile) { Copy-Item $SettingsPath ($SettingsPath + '.kit-backup') -Force }
+    else {
+        $dir = Split-Path $SettingsPath -Parent
+        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    }
+    Write-Utf8NoBom $SettingsPath ((ConvertTo-Json -InputObject $settings -Depth 32) + "`n")
+    if ($Remove) { return "Fable gate hook entry in $SettingsPath" }
+    return 'registered'
+}
+
 function Remove-ClaudeInstructions {
     param($Spec)
     $removed = @()
+    $hookEntryGone = $true
+    try {
+        $r = Set-FableGateHook -SettingsPath $Spec.Settings -HookFile $Spec.HookFile -Remove
+        if ($null -ne $r) { $removed += $r }
+    }
+    catch {
+        $hookEntryGone = $false
+        Write-Warning "Could not read $($Spec.Settings) ($($_.Exception.Message)). Remove the PreToolUse entry naming fable-gate.ps1 by hand; the hook script is left in place until then."
+    }
+    if ($hookEntryGone -and (Test-Path $Spec.HookFile) -and [System.IO.File]::ReadAllText($Spec.HookFile).Contains($policyMarker)) {
+        Remove-Item $Spec.HookFile -Force
+        $removed += $Spec.HookFile
+    }
     if (Test-Path $Spec.ClaudeMd) {
         $text = [System.IO.File]::ReadAllText($Spec.ClaudeMd)
         $pattern = '(\r?\n)?' + [regex]::Escape($blockBegin) + '.*?' + [regex]::Escape($blockEnd) + '(\r?\n)?'
@@ -313,6 +408,27 @@ if ($null -ne $claudeInstr) {
         }
         Write-Host "Claude instructions -> $($claudeInstr.PolicyFile)" -ForegroundColor Green
         Write-Host "  $($claudeInstr.ClaudeMd): $mdAction"
+    }
+
+    $hookOurs = $true
+    if ((Test-Path $claudeInstr.HookFile) -and -not $Force) {
+        $hookOurs = [System.IO.File]::ReadAllText($claudeInstr.HookFile).Contains($policyMarker)
+    }
+    if (-not $hookOurs) {
+        $blocked += $claudeInstr.HookFile
+    }
+    else {
+        $hdir = Split-Path $claudeInstr.HookFile -Parent
+        if (-not (Test-Path $hdir)) { New-Item -ItemType Directory -Path $hdir -Force | Out-Null }
+        Write-Utf8NoBom $claudeInstr.HookFile ([System.IO.File]::ReadAllText((Join-Path $repo 'hooks\fable-gate.ps1')))
+        Write-Host "Fable gate hook -> $($claudeInstr.HookFile)" -ForegroundColor Green
+        try {
+            $hookAction = Set-FableGateHook -SettingsPath $claudeInstr.Settings -HookFile $claudeInstr.HookFile
+            Write-Host "  $($claudeInstr.Settings): $hookAction"
+        }
+        catch {
+            Write-Warning "Could not update $($claudeInstr.Settings) ($($_.Exception.Message)). The hook is NOT active. Add a PreToolUse entry by hand: matcher 'Agent|Task', command: powershell -NoProfile -ExecutionPolicy Bypass -File `"$($claudeInstr.HookFile)`""
+        }
     }
 }
 
