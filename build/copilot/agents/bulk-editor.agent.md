@@ -1,7 +1,7 @@
 ---
 name: bulk-editor
 description: 'Applies the same mechanical change across many files - renames, import rewrites, signature updates, codemods, formatting, config propagation. Use when the change is fully specified and verifiable. Not for anything needing judgement.'
-model: ['MAI-Code-1.1-Flash', 'GPT-5.6 Luna', 'Gemini 3.7 Flash']
+model: ['GPT-6 Luna', 'MAI-Code-1.1-Flash', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'edit', 'execute']
 ---
 

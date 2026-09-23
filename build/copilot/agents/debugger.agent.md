@@ -1,7 +1,7 @@
 ---
 name: debugger
 description: 'Finds the root cause of a failing test, exception or wrong output. Use when the cause is not obvious from the error message, or when a previous cheap attempt at a fix did not hold. Diagnoses and fixes.'
-model: ['Claude Opus 5', 'Claude Opus 4.8', 'GPT-5.6 Sol']
+model: ['Claude Opus 5.5', 'Claude Opus 5', 'GPT-6 Sol']
 tools: ['read', 'search', 'edit', 'execute']
 ---
 

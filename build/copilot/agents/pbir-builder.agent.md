@@ -1,7 +1,7 @@
 ---
 name: pbir-builder
 description: 'Builds or edits Power BI report pages (PBIR JSON) from an approved spec with a re-runnable script, then validates with the powerbi-report-author CLI against a baseline. One page, or a few pages of the same shape, per run. Use instead of implementer for PBIR work. Does not verify in Desktop - the caller does.'
-model: ['Claude Sonnet 5', 'GPT-5.3-Codex', 'Gemini 3.7 Flash']
+model: ['Claude Sonnet 5', 'GPT-6 Sol', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'edit', 'execute']
 ---
 

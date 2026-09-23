@@ -1,7 +1,7 @@
 ---
 name: test-author
 description: 'Writes tests for existing code - unit, integration, regression tests for a fixed bug. Use to cover new code or to pin down behaviour before a refactor.'
-model: ['Claude Sonnet 5', 'GPT-5.3-Codex', 'Gemini 3.7 Flash']
+model: ['Claude Sonnet 5', 'GPT-6 Sol', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'edit', 'execute']
 ---
 

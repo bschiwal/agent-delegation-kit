@@ -1,7 +1,7 @@
 ---
 name: doc-writer
 description: 'Writes and updates documentation from code that already exists - READMEs, API docs, runbooks, module overviews, docstrings. Use after the code is settled.'
-model: ['GPT-5.6 Luna', 'Gemini 3.7 Flash', 'Claude Haiku 4.5']
+model: ['GPT-6 Luna', 'Gemini 3.7 Flash', 'Claude Haiku 4.5']
 tools: ['read', 'search', 'edit']
 ---
 

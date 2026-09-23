@@ -14,15 +14,15 @@ Regenerate from `registry/policy.json`; do not hand-edit this file.
 <!-- BEGIN:routing-table -->
 | Kind of work | Model |
 |---|---|
-| Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens. | **Claude Opus 5** (fall back: Claude Opus 4.8, Claude Opus 4.7, GPT-6 Astra) |
-| Review where a miss is costly: numbers that reach a client or decision-maker, security-sensitive changes. | **Claude Opus 5** (fall back: Claude Opus 4.8, Claude Opus 4.7, GPT-6 Astra) |
-| Planning, architecture design, tricky debugging, ambiguous tradeoffs. | **Claude Opus 5** (fall back: Claude Opus 4.8, GPT-5.6 Sol) |
-| Front door for a request: classify it, route each part to a specialist agent, sequence the handoffs, merge the results. | **Claude Sonnet 5** (fall back: GPT-5.3-Codex, Gemini 3.7 Flash) |
-| Write real code against a clear spec. Needs competence, not brilliance. | **Claude Sonnet 5** (fall back: GPT-5.3-Codex, Gemini 3.7 Flash) |
-| Mechanical, verifiable changes - renames, import fixes, formatting, codemods, boilerplate. | **MAI-Code-1.1-Flash** (fall back: GPT-5.6 Luna, Gemini 3.7 Flash) |
-| Locate code, trace usages, answer where-is questions. Read-only reconnaissance. | **GPT-5.6 Luna** (fall back: Gemini 3.7 Flash, MAI-Code-1.1-Flash) |
-| Condense logs, diffs, docs, meeting notes, test output into something a human or a premium agent can read. | **GPT-5.6 Luna** (fall back: Gemini 3.7 Flash) |
-| Docs, READMEs, commit messages, PR descriptions, changelogs. | **GPT-5.6 Luna** (fall back: Gemini 3.7 Flash, Claude Haiku 4.5) |
+| Correctness, security and architecture review. Judgement work where a missed bug costs more than the tokens. | **Claude Opus 5.5** (fall back: Claude Opus 5, Claude Opus 4.8, GPT-6 Astra) |
+| Review where a miss is costly: numbers that reach a client or decision-maker, security-sensitive changes. | **Claude Opus 5.5** (fall back: Claude Opus 5, Claude Opus 4.8, GPT-6 Astra) |
+| Planning, architecture design, tricky debugging, ambiguous tradeoffs. | **Claude Opus 5.5** (fall back: Claude Opus 5, GPT-6 Sol) |
+| Front door for a request: classify it, route each part to a specialist agent, sequence the handoffs, merge the results. | **Claude Sonnet 5** (fall back: GPT-6 Sol, Gemini 3.7 Flash) |
+| Write real code against a clear spec. Needs competence, not brilliance. | **Claude Sonnet 5** (fall back: GPT-6 Sol, Gemini 3.7 Flash) |
+| Mechanical, verifiable changes - renames, import fixes, formatting, codemods, boilerplate. | **GPT-6 Luna** (fall back: MAI-Code-1.1-Flash, Gemini 3.7 Flash) |
+| Locate code, trace usages, answer where-is questions. Read-only reconnaissance. | **GPT-6 Luna** (fall back: Gemini 3.7 Flash, MAI-Code-1.1-Flash) |
+| Condense logs, diffs, docs, meeting notes, test output into something a human or a premium agent can read. | **GPT-6 Luna** (fall back: GPT-5.6 Luna, Gemini 3.7 Flash) |
+| Docs, READMEs, commit messages, PR descriptions, changelogs. | **GPT-6 Luna** (fall back: Gemini 3.7 Flash, Claude Haiku 4.5) |
 <!-- END:routing-table -->
 
 Reviewing and reasoning stay on Claude deliberately - a missed bug costs far more
@@ -35,21 +35,21 @@ there. Everything else runs on the cheapest model that can finish the job.
 List price per 1M tokens, blended as `0.8 x input + 0.2 x output` (agent turns
 are input-heavy). Real billing can differ from list price - measure yours:
 
-- GPT-5.6 Luna - **0.40**
+- GPT-6 Luna - **0.18**
 - MAI-Code-1.1-Flash - **0.40**
+- GPT-5.6 Luna - **0.40**
 - Gemini 3.7 Flash - **1.35**
 - Claude Haiku 4.5 - **1.80**
 - Claude Sonnet 5 - **3.60**
-- GPT-5.3-Codex - **4.20**
-- GPT-5.6 Sol - **7.20**
-- Claude Opus 5 - **9.00**
-- Claude Opus 4.7 - **9.00**
+- GPT-6 Sol - **3.60**
+- Claude Opus 5.5 - **7.20**
 - Claude Opus 4.8 - **9.00**
+- Claude Opus 5 - **9.00**
 - GPT-6 Astra - **18.00**
 <!-- END:cost-list -->
 
 <!-- BEGIN:cost-notes -->
-- At list price, Claude Sonnet 5 ($2/$10) undercuts GPT-5.4, GPT-5.5 and GPT-5.6 Sol, and Claude Opus 5 undercuts GPT-5.5 and GPT-6 Astra - so swapping a Claude model for one of those can raise the bill.
+- At list price, Claude Sonnet 5 ($2/$10) undercuts GPT-5.4, GPT-5.5 and GPT-5.6 Sol, and Claude Opus 5.5 undercuts Opus 5, GPT-5.5 and GPT-6 Astra - so swapping a Claude model for one of those can raise the bill.
 - Real billing can rank models differently from list price: a model that writes less or reads less context per task costs less in practice. Where you have billing data, supply measured figures through registry/policy.local.json and route on those.
 - Never pick a model that is both worse and pricier than an alternative - models.json flags the dominated ones.
 <!-- END:cost-notes -->

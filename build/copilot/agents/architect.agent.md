@@ -1,7 +1,7 @@
 ---
 name: architect
 description: 'Designs an implementation plan before code is written - files to touch, order of work, tradeoffs, failure modes. Use for anything spanning more than a couple of files, or where the approach is not obvious. Produces a plan, not code.'
-model: ['Claude Opus 5', 'Claude Opus 4.8', 'GPT-5.6 Sol']
+model: ['Claude Opus 5.5', 'Claude Opus 5', 'GPT-6 Sol']
 tools: ['read', 'search', 'edit', 'web']
 ---
 

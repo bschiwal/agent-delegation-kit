@@ -1,7 +1,7 @@
 ---
 name: triage-lead
 description: 'The orchestrator for sessions WITHOUT the kit''s delegation policy - GitHub Copilot, or Claude Code installed without -WithInstructions. Reads a request, delegates each part to the right specialist, and returns one merged answer. Ask for ''a plan only'' to get the plan without running anything. Does not edit files itself.'
-model: ['Claude Sonnet 5', 'GPT-5.3-Codex', 'Gemini 3.7 Flash']
+model: ['Claude Sonnet 5', 'GPT-6 Sol', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'agent']
 agents: ['architect', 'bulk-editor', 'code-reviewer', 'data-model-reviewer', 'debugger', 'doc-writer', 'implementer', 'log-triager', 'model-builder', 'pbir-builder', 'pr-scribe', 'repo-scout', 'security-reviewer', 'test-author']
 ---

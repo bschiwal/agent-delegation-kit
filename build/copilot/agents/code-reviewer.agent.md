@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: 'Reviews a diff or branch for correctness bugs, broken edge cases and regressions. Use after writing or changing code, and before opening a PR. Read-only - it reports, it does not fix.'
-model: ['Claude Opus 5', 'Claude Opus 4.8', 'Claude Opus 4.7', 'GPT-6 Astra']
+model: ['Claude Opus 5.5', 'Claude Opus 5', 'Claude Opus 4.8', 'GPT-6 Astra']
 tools: ['read', 'search', 'execute']
 ---
 

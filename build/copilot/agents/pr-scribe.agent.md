@@ -1,7 +1,7 @@
 ---
 name: pr-scribe
 description: 'Writes commit messages, PR descriptions and changelog entries from the actual diff. Use when work is done and needs to be described for review. Read-only - it drafts text, it does not commit or push.'
-model: ['GPT-5.6 Luna', 'Gemini 3.7 Flash', 'Claude Haiku 4.5']
+model: ['GPT-6 Luna', 'Gemini 3.7 Flash', 'Claude Haiku 4.5']
 tools: ['read', 'search', 'execute']
 ---
 

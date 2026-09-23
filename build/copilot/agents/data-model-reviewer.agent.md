@@ -1,7 +1,7 @@
 ---
 name: data-model-reviewer
 description: 'Reviews semantic models, DAX, SQL and pipeline logic for wrong numbers - bad grain, non-additive measures summed, broken relationships, silent filter-context bugs. Use on Power BI/Fabric models, warehouse SQL and transformation code. Read-only.'
-model: ['Claude Opus 5', 'Claude Opus 4.8', 'Claude Opus 4.7', 'GPT-6 Astra']
+model: ['Claude Opus 5.5', 'Claude Opus 5', 'Claude Opus 4.8', 'GPT-6 Astra']
 tools: ['read', 'search', 'execute', 'powerbi-modeling-mcp/dax_query_operations']
 ---
 

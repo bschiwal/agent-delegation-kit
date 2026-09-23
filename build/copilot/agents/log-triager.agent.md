@@ -1,7 +1,7 @@
 ---
 name: log-triager
 description: 'Compresses large output - build logs, test failures, stack traces, CI output, query results - into the few lines that matter. Use before handing failure output to an expensive agent or reading it yourself. Read-only.'
-model: ['GPT-5.6 Luna', 'Gemini 3.7 Flash']
+model: ['GPT-6 Luna', 'GPT-5.6 Luna', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'execute']
 ---
 

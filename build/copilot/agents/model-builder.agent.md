@@ -1,7 +1,7 @@
 ---
 name: model-builder
 description: 'Makes semantic model changes directly in the live Power BI model through the Power BI modeling MCP, using the caller''s existing connection: measures, calculated tables and columns, relationships. Works inside a transaction, tests every change with small DAX queries, and exports the changed objects as TMDL for review. Use for any model change instead of implementer. Needs the Power BI modeling MCP server installed.'
-model: ['Claude Sonnet 5', 'GPT-5.3-Codex', 'Gemini 3.7 Flash']
+model: ['Claude Sonnet 5', 'GPT-6 Sol', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'edit', 'execute', 'powerbi-modeling-mcp/*']
 ---
 

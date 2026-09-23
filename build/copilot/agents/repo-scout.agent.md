@@ -1,7 +1,7 @@
 ---
 name: repo-scout
 description: 'Answers where-is and how-does-this-work questions by sweeping the codebase. Use instead of reading many files yourself - it returns the conclusion and the paths, not the file contents. Read-only.'
-model: ['GPT-5.6 Luna', 'Gemini 3.7 Flash', 'MAI-Code-1.1-Flash']
+model: ['GPT-6 Luna', 'Gemini 3.7 Flash', 'MAI-Code-1.1-Flash']
 tools: ['read', 'search']
 ---
 

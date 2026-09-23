@@ -1,7 +1,7 @@
 ---
 name: security-reviewer
 description: 'Audits changed code for exploitable security flaws - injection, authz gaps, secret exposure, unsafe deserialization, SSRF. Use before shipping anything that touches auth, user input, file paths, network calls or credentials. Read-only.'
-model: ['Claude Opus 5', 'Claude Opus 4.8', 'Claude Opus 4.7', 'GPT-6 Astra']
+model: ['Claude Opus 5.5', 'Claude Opus 5', 'Claude Opus 4.8', 'GPT-6 Astra']
 tools: ['read', 'search', 'execute']
 ---
 

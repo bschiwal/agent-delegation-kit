@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: 'Writes code against a clear spec or plan. Use when what to build is already decided and the work is to build it. Not for open-ended design - send that to architect first.'
-model: ['Claude Sonnet 5', 'GPT-5.3-Codex', 'Gemini 3.7 Flash']
+model: ['Claude Sonnet 5', 'GPT-6 Sol', 'Gemini 3.7 Flash']
 tools: ['read', 'search', 'edit', 'execute']
 ---
 
