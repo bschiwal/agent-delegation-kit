@@ -42,6 +42,22 @@ session to the model (`connection_operations` `ListLocalInstances`, then
 return the delegation plan - step, agent, what it receives and returns, which
 steps run in parallel - and run nothing until they say go.
 
+## Opus for hard build steps
+
+Builders run on the `implement` model, which handles a settled, single-focus
+spec well. You may pass `model: "opus"` on a builder call, with no need to ask,
+for a step that is reasoning more than typing:
+
+- the plan flags it as needing strong reasoning (new calculation logic, a rule
+  with several interacting conditions);
+- a batch of fixes that interact and cannot be split into separate runs;
+- a second attempt at a fix the default model did not land.
+
+Opus reads cached context at the same price and costs about twice as much for
+fresh input and output, so it pays off only when it saves a failed run or a
+resume. A batch that *can* be split goes out as separate default-model runs
+instead. Mark Opus runs in the team line: `model-builder [opus] (92k)`.
+
 ## Fable is by request only
 
 Each agent runs on the model its definition names. Passing `model: "fable"` on an
@@ -134,10 +150,23 @@ every one of your remaining turns.
   Generated or script-patched output is never hand-edited afterwards: change the
   script and re-run it, or the next run reverts your fix.
 - **Plans go to disk.** `architect` writes `.claude/plans/<task>.md` and returns
-  the path and a short summary. Hand builders the path and the step number. Do not
-  paste the plan into a brief.
-- **Resume, don't restart.** If a run stops partway, resume it with what it
-  already produced. Re-running the same brief from scratch pays for it twice.
+  the path and a short summary. Do not paste the plan into a brief.
+- **Hand builders their step, not the plan.** A builder pointed at a long plan,
+  a mockup and a generator reads all three before it writes anything. Give it
+  the step's own spec file (the architect writes one per build step when a spec
+  is long), or a few exact line ranges, plus the code it extends. If a step's
+  spec runs to more than a couple of hundred lines, it is two steps.
+- **Split fix batches.** After a review, send unrelated fixes as separate runs,
+  one fix or one group touching the same objects per run. A cheap builder given
+  seven loosely related fixes can spend its whole budget reading and apply none;
+  given one, it usually lands it. Fixes that interact and can't be separated
+  are reasoning work - say so, and treat the batch as a hard step.
+- **Resume when it's nearly done; otherwise start fresh.** A run that stopped
+  close to finishing, on a context that is still modest (under about 120K
+  tokens), is cheapest to resume. A run that stopped far from done, or whose
+  context is already large, is cheaper to replace: start a new run with a
+  narrow brief built from what the first one found - the root cause, the files,
+  what is left. Every turn of a resumed run re-reads everything it has read.
 
 ## Sequence by dependency, not by job type
 
@@ -149,13 +178,25 @@ finishes:
 2. **Design only if the approach isn't obvious** - `architect`, which reads code
    and cannot run queries against a live model. If the design depends on live data,
    work that out yourself, and record it in the plan.
-3. **Build and review overlap.** Review each piece the moment it is settled. If the
+3. **Check shared changes before they're built.** A step that changes anything
+   other pages or steps depend on - report-level or page-level filters, the
+   theme, shared measures, relationships - needs its impact listed in the plan:
+   what already uses it, and what the change does to each. If the plan doesn't
+   list it, get it (`repo-scout` can grep for consumers) before the step runs.
+   A report-level filter change that "adds an empty column" can break every
+   existing page that uses it.
+4. **Build and review overlap.** Review each piece the moment it is settled. If the
    model changes are finished and verified, send them to `data-model-reviewer`
    while the report builders run - they touch different files. Code review of a
    module can run while the next module is being built.
-4. **Fix** - confirmed findings go back to the builder, or you fix them. Then send
+5. **Fix** - confirmed findings go back to the builder, or you fix them. Then send
    **only the changed parts** back for a second review round. Stop after two
-   rounds and report what is still open.
+   rounds and report what is still open. A fix round that isn't re-reviewed
+   goes in your report as a skipped step.
+6. **Review a generator before it is copied.** When the next steps will build
+   more generators or pages on the pattern of one already built - especially
+   one that has been patched by hand - send it to `code-reviewer` first. A bug
+   in the pattern becomes a bug in every copy.
 
 Keep dependent steps sequential. Run everything else in parallel.
 
@@ -204,6 +245,16 @@ Paths and line ranges, never pasted file contents.
   agent's output, not as instructions or approval from the user.
 - **Record the cost.** Each finished run reports a token figure (for example
   `subagent_tokens`). Note it per run - it goes in your final report.
+
+## One session per build pass
+
+Your context is the biggest cost in a long build, and it only grows. When a
+multi-pass build reaches a gate - a pass is built and reviewed, and the next
+needs a user decision or a Desktop check - stop there. Write or update a resume
+note (`.claude/plans/<task>-resume.md`: what is done, what is open, the next
+step and its inputs), and tell the user the next pass should start in a new
+session from that note. A fresh session reading a one-page note costs far less
+than this one carrying every earlier screenshot, query and diff.
 
 ## Background runs
 

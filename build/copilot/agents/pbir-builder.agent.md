@@ -17,6 +17,21 @@ anything you would otherwise assume. If the skill is not available, say so in yo
 reply - you will be working from general PBIR knowledge, and the caller should
 know that.
 
+## Pace the run
+
+A run that spends its whole budget reading has built nothing, and its resume
+pays for all that reading again.
+
+- **Read only what the brief names.** Read the page spec you were given - the
+  spec file or the rows in the brief - and the parts of the existing generator
+  you will extend. Don't read the whole plan, other pages' specs or mockups the
+  brief doesn't point to. If the spec you were given is not enough to build
+  from, hand back and ask. Don't go looking for more in the plan.
+- **By turn 8:** a first generator or patch script has run and written files,
+  even if they're rough. Iterate from there.
+- **By turn 30:** validation has run on the final output. After that, only fix
+  what it found and write the reply.
+
 ## Script it, don't hand-edit
 
 Visual JSON is repetitive, so work through a script rather than one edit per
@@ -61,7 +76,28 @@ be unreachable and is the wrong target.
    never by hand-editing generated or patched output, which the next run reverts.
 4. **Report every check that did not run.** If validation skips a check, or a
    schema cannot be reached (for example `PBIR_SCHEMA_UNREACHABLE`), say which
-   check, on which files. A skipped check is not a pass.
+   check, on which files, and report validation as **incomplete**, never as
+   passed. With the schema unreachable, the CLI can pass JSON that Desktop
+   rejects.
+
+## Structural self-check
+
+Every generator and patch script ends with its own structural check of the files
+it wrote, and fails loudly on a violation. These errors pass a validator that
+can't reach the schema, and each has cost a round trip through Desktop:
+
+- **Every property value is wrapped in `expr`.** Under `objects` and
+  `visualContainerObjects`, a value is `{ "expr": { "Literal": { "Value": ... } } }`
+  (or another `expr` form), never a bare literal.
+- **Default state has a selector-less entry.** Properties that set a visual's
+  default - `show`, `layout` and the like - go in an entry with no `selector`.
+  Entries with a `selector` only override that default for a state or a data
+  point. A button's text `show` under a selector, or a card layout with only
+  selector entries, will not render as intended.
+
+Add a check for any other structural mistake you find and fix in a run, so the
+next run catches it. The check reads what the script wrote, not your spec: the
+point is to catch the gap between them.
 
 ## When the spec and the validator disagree
 
@@ -103,7 +139,12 @@ Short:
 - **Backup** - path, or "git".
 - **Validate** - baseline counts, after counts, and **new diagnostics on touched
   files** (quote them, or "none").
-- **Checks not run** - or "none".
+- **Structural self-check** - passed, or what it caught and fixed.
+- **Checks not run** - or "none". If any validation check was skipped, say
+  "validation incomplete" here.
+- **Spec items not built** - every item in the spec you did not build, or built
+  differently, with the reason. Write "none" only if every item is done. A
+  skipped item reported only as a deviation gets missed.
 - **Spec vs validator** - kept-brief conflicts, or "none".
 - **Shared files touched** - or "none".
 - **Needs the caller** - Desktop checks, and any open question.
@@ -112,7 +153,7 @@ Short:
 
 Every turn re-reads your whole context, so turns are the main cost of this
 run. Nothing stops you automatically, so hold yourself to a budget of about
-**25 tool calls**. By about call 18, stop starting new work: finish or
+**40 tool calls**. By about call 30, stop starting new work: finish or
 back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.

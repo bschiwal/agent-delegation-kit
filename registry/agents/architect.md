@@ -61,8 +61,18 @@ Plan file layout:
 - **Approach** - the design, and the rejected alternative with its reason.
 - **Steps** - numbered, each with files, change, and verification. Mark steps
   that can run in parallel, and size each one to fit a single implementer run
-  (roughly 20 turns). For many similar files, the step is "write a generator",
+  (roughly 25 turns). A batch of several unrelated fixes is several steps. For many similar files, the step is "write a generator",
   not one step per file.
+- **Build inputs** - for each build step, the spec a builder needs and nothing
+  more: fields, measures, rules, positions and sizes. When a step's spec runs
+  past about 100 lines, or is spread across the plan, write it to its own file
+  (`.claude/plans/<task>/<step>.md` or `.json`) and name that file in the step.
+  A builder handed a 1,400-line plan spends its whole run reading it.
+- **Shared impact** - for every step that changes something other steps or
+  existing pages depend on (report-level or page-level filters, the theme,
+  shared measures, relationships, calculation groups), list what already uses
+  it and what it does to each. Grep for it; don't assume. "Adds an empty
+  column" is an impact to check, not one to accept.
 - **Risks** - what breaks, what is irreversible, what needs a migration.
 - **Open questions** - anything that genuinely needs a human decision, with your
   recommendation. If there are none, say so; do not invent questions.

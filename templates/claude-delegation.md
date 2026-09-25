@@ -42,6 +42,22 @@ session to the model (`connection_operations` `ListLocalInstances`, then
 return the delegation plan - step, agent, what it receives and returns, which
 steps run in parallel - and run nothing until they say go.
 
+## Opus for hard build steps
+
+Builders run on the `implement` model, which handles a settled, single-focus
+spec well. You may pass `model: "opus"` on a builder call, with no need to ask,
+for a step that is reasoning more than typing:
+
+- the plan flags it as needing strong reasoning (new calculation logic, a rule
+  with several interacting conditions);
+- a batch of fixes that interact and cannot be split into separate runs;
+- a second attempt at a fix the default model did not land.
+
+Opus reads cached context at the same price and costs about twice as much for
+fresh input and output, so it pays off only when it saves a failed run or a
+resume. A batch that *can* be split goes out as separate default-model runs
+instead. Mark Opus runs in the team line: `model-builder [opus] (92k)`.
+
 ## Fable is by request only
 
 Each agent runs on the model its definition names. Passing `model: "fable"` on an
@@ -74,6 +90,16 @@ If you are denied, run the agent on its default model. Do not retry with Fable.
 Mark Fable runs in the team line: `architect [fable] (48k)`.
 
 <!-- INCLUDE:delegation-core -->
+
+## One session per build pass
+
+Your context is the biggest cost in a long build, and it only grows. When a
+multi-pass build reaches a gate - a pass is built and reviewed, and the next
+needs a user decision or a Desktop check - stop there. Write or update a resume
+note (`.claude/plans/<task>-resume.md`: what is done, what is open, the next
+step and its inputs), and tell the user the next pass should start in a new
+session from that note. A fresh session reading a one-page note costs far less
+than this one carrying every earlier screenshot, query and diff.
 
 ## Background runs
 
