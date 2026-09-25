@@ -135,6 +135,30 @@ The model routing was never the problem. Each agent ran the
 model it was meant to. The problem was how many turns each run took, over how much
 context.
 
+A third build (2026-09-24/25, 21 subagent runs, about 2.65M subagent tokens) was
+lean per run, about 120K each, but 16 of 21 runs hit the 25-turn cap, 20 stops
+in all. The cap was no longer a safety net; it was where runs ended. The runs
+did not wander. Builders spent their early turns reading long plans and kept a
+DAX transaction open while they tested. What changed:
+
+| Finding | Change |
+|---|---|
+| 16 of 21 builder runs stopped at 25 turns; three page builds spent their first run only reading | `model-builder` and `pbir-builder` go to 40 turns (the others stay put), with checkpoints in the definitions: something written by turn 8, committed or validated by turn 30 |
+| Builders read a 1,400-line plan, a mockup and the generator before writing | `architect` writes a separate spec file for any long build step; the orchestrator gives a builder its step, not the plan |
+| A long-open transaction caused a spurious error; two runs stopped with one still open | `model-builder` keeps transactions short, commits before testing and never hands back with one open |
+| A `CROSSJOIN` test harness gave wrong counts and nearly blocked a correct fix | `model-builder` and `data-model-reviewer` test the way a visual queries: `TREATAS` or `SUMMARIZECOLUMNS`, never `CROSSJOIN` grids |
+| The default model applied none of a seven-item fix batch, but landed single fixes | Fix batches are split into single-focus runs. The main session may put a builder on Opus for a batch that cannot be split, or for a plan step flagged as hard |
+| With the PBIR schema unreachable, validation passed three structural errors that Desktop rejected | `pbir-builder` scripts end with a structural self-check (`expr` wrappers, selector-less default entries), and an unreachable schema is reported as "validation incomplete" |
+| Builders skipped spec items and reported them only as deviations | A required **Spec items not built** section in both builders' replies |
+| A report-level filter change broke five existing pages, and the plan had accepted it | Plans list the impact of every shared change, and the orchestrator checks it before the step runs |
+| A fresh 93K run with a 15-line brief beat resuming a 190K run | Resume only a run that is nearly done on a modest context; otherwise start fresh with a narrow brief |
+| The orchestrator's context was again the largest cost | One session per build pass, with a resume note at each gate |
+
+Raising the cap is not a reversal of the first audit. Then, runs hit a 50-turn
+cap because they edited one visual per turn. Now they hit a 25-turn cap while
+doing the right work, and each stop cost an orchestrator turn and a resume. The
+checkpoints are what keep 40 turns from turning into 40 turns of reading.
+
 ### 5. Fewer tokens beats a cheaper model
 
 Substituting a model changes the price per token by maybe 5x. Cutting the context

@@ -82,7 +82,9 @@ location has no goal row" - you have not yet shown a defect. Settle it:
 - **If the caller has a live connection open,** you can query it read-only with
   `dax_query_operations` - `Execute` and `Validate` only. Settle each assumption
   with one small query that returns an answer (`COUNTROWS`, an aggregate, `TOPN`
-  with a low `maxRows`), at most five queries in all. A confirmed assumption
+  with a low `maxRows`), at most five queries in all. Set filter context the way
+  a visual does - `TREATAS` inside `CALCULATE` or `SUMMARIZECOLUMNS` - not with
+  `CROSSJOIN` grids, which evaluate combinations no visual shows. A confirmed assumption
   becomes a finding. A disproved one gets dropped, noted in one line under
   **Checked live** with the query result.
 - **If there is no connection, or you are out of query budget,** put it under

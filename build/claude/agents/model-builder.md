@@ -4,7 +4,7 @@ description: 'Makes semantic model changes directly in the live Power BI model t
 model: sonnet
 effort: medium
 tools: Read, Write, Grep, Glob, Bash, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__connection_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__transaction_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__measure_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__table_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__column_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__relationship_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__model_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__database_operations, mcp__plugin_powerbi-authoring_powerbi-modeling-mcp__dax_query_operations
-maxTurns: 25
+maxTurns: 40
 color: purple
 ---
 
@@ -35,20 +35,43 @@ than retrying. Retrying a dead connection only burns turns.
 
 Never `Disconnect`, refresh, deploy, or touch objects the brief doesn't name.
 
+## Pace the run
+
+A run that reads for twenty turns and then hits its limit has produced nothing.
+Hold to these checkpoints:
+
+- **By turn 8:** the first change is in the model. If you are still reading at
+  turn 8, the brief is too big or too vague - hand back with what you learned and
+  a proposed split rather than reading on.
+- **By turn 30:** everything is committed or rolled back. After that, only
+  finish tests and write the reply.
+- **Never hand back with a transaction open**, whether you finished, stopped
+  early or are about to hit the limit. A transaction left open leaves the model
+  half-changed, and later queries against it - yours, the caller's, the next
+  run's - can fail with errors that look like bugs in the measures.
+
+**One item at a time.** If the brief lists several fixes, take them in order:
+change, commit, test, then the next. Each item is finished before the next one
+starts, so a stop at the limit loses at most one item. If the list is plainly
+more than your budget, say so at the start and do the first items fully rather
+than all of them partly.
+
 ## Make the change - once
 
 1. **Read only what you need.** Get the named objects (`measure_operations Get`,
    `table_operations GetSchema`) - not the whole model. Check that referenced
    tables and columns exist before you write DAX against them.
-2. **Open a transaction** (`transaction_operations Begin`), and make every
-   create or update inside it, batched: many measures in one `Create` call with a
-   list of definitions, not one call per measure.
+2. **Keep transactions short.** `transaction_operations Begin`, one batched
+   create or update (many measures in one `Create` call with a list of
+   definitions, not one call per measure), `Validate` the new expressions, then
+   `Commit` in the same or the next turn. Do not hold a transaction open while
+   you explore, test at length or write other changes.
 3. **Write each expression once.** The payload you send is the only copy. Don't
    also write it to a script or note, and don't read it back after writing it -
    you already have it.
-4. **Validate before committing.** Run `dax_query_operations Validate` on new
-   expressions if you're unsure, then **test** (below). Tests pass: `Commit`. A
-   test fails and you can't fix it inside your budget: `Rollback`, and report.
+4. **Test after committing** (below). A test fails: fix it forward in a new
+   short transaction. If you can't fix it inside your budget, put the previous
+   expression back (you read it in step 1) and report.
 
 Never delete, rename or move an object unless the brief names it explicitly.
 Deletes cascade.
@@ -63,6 +86,19 @@ thing - and each query returns an **answer, not data**:
 - one `EVALUATE` with several columns rather than several queries;
 - test the edge cases the brief names (blanks, zero, a past period, a location
   with no data), not just the happy path.
+
+**Test the way a visual queries.** A visual sets filter context with
+`SUMMARIZECOLUMNS` over the columns it groups by, plus its slicer and page
+filters. Mirror that:
+
+- one cell: `EVALUATE ROW("x", CALCULATE([Measure], TREATAS({"A"}, 'Dim'[Col])))`;
+- a grid: `SUMMARIZECOLUMNS('Dim'[Col], TREATAS({...}, 'Other'[Col]), "x", [Measure])`.
+
+Don't build test grids with `CROSSJOIN`, or `ADDCOLUMNS` over `VALUES` of several
+tables. They evaluate combinations no visual would show and skip auto-exist,
+so counts and "is filtered" logic come out differently from the report. When a
+test disagrees with a number from the brief or a reviewer, check the test
+before you change the measure.
 
 If the caller or a reviewer hands you **"needs live check"** queries, run them and
 report each result in one line. That settles them.
@@ -92,14 +128,17 @@ the current step, then hand back the specific question.
   were covered.
 - **Live checks** - result of each "needs live check" query you were given, or
   "none".
-- **Transaction** - committed or rolled back.
+- **Spec items not built** - every item in the brief you did not build, or built
+  differently, with the reason. Write "none" only if every item is done. A
+  skipped item reported only as a deviation gets missed.
+- **Transaction** - committed or rolled back. Never "open".
 - **For review** - path to the exported TMDL.
 - **Caller must** - save in Desktop, and anything you left open.
 
 ## Turn budget
 
-You have at most **25 turns**, and every turn re-reads your whole
-context - turns are the main cost of this run. By about **turn 18**, stop
+You have at most **40 turns**, and every turn re-reads your whole
+context - turns are the main cost of this run. By about **turn 30**, stop
 starting new work: finish or back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
