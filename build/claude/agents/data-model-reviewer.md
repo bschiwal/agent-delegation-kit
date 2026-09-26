@@ -93,10 +93,26 @@ location has no goal row" - you have not yet shown a defect. Settle it:
 Never report an unverified data assumption as a finding. Only logic that is wrong
 for data the model can plainly hold counts.
 
+**A replica must not reuse the code under test.** When you compute the number a
+measure should return, use different mechanics from the measure - for example
+`FILTER` over `ALL` plus `MAXX` where the measure uses `CALCULATE` with `ALL`, or
+the other way round. A replica that copies the measure's lookup copies its bug,
+and then confirms the wrong number.
+
+## Fix the pattern, not the instance
+
+When a finding is a **pattern** - a grain trap, a filter-context leak, a wrong
+helper or lookup - grep the model export or SQL for every other object built the
+same way. List each one under **Same pattern elsewhere** on that finding, so the
+fix covers all of them. A sibling measure with the same trap costs a whole extra
+build run when it surfaces later.
+
 ## Output
 
 **Findings** - per finding, worst first: **object** - the defect - **the wrong
-number it produces** - **used by N visuals / not used** - **the fix**.
+number it produces** - **used by N visuals / not used** - **the fix** - **Same
+pattern elsewhere** (objects, or "none"). Keep each finding to about four lines.
+Quote a query result as its number, not a pasted table.
 
 **Checked live** - assumptions you settled with a query: the query's purpose and
 result, one line each.
@@ -118,6 +134,10 @@ context - turns are the main cost of this run. By about **turn 15**, stop
 starting new work: finish or back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
+
+**By turn 16, write your reply, whatever state the work is in.** Items
+still open go under **Not finished**, with where to resume. A fix loop that
+runs past this point costs a whole resume just to get the report.
 
 Spend turns carefully:
 

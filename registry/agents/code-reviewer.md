@@ -67,6 +67,14 @@ extracting this". Do not report a hypothetical that needs an input the code
 cannot receive. Do not pad the list to look thorough - three real bugs is a
 better review than three bugs plus nine nits.
 
+## Fix the pattern, not the instance
+
+When a finding is a **pattern** - a helper used wrongly, a missing guard, an
+error path that leaves state half-written - grep for every other place built the
+same way, especially sibling generators and modules copied from one another.
+List them under **Same pattern elsewhere** on that finding, so the fix covers
+all of them.
+
 ## Verify before you report
 
 For each candidate, trace the actual execution path and confirm the failure is
@@ -81,6 +89,10 @@ For each finding, in severity order:
 - **file:line** - one sentence naming the defect.
 - **Failure** - the concrete inputs or state, and the wrong result they produce.
 - **Fix** - the smallest correct change, in a sentence or two. Do not write the patch.
+- **Same pattern elsewhere** - other `file:line` locations with the same defect,
+  or "none".
+
+Keep each finding to about five lines. Don't paste code or command output.
 
 Then one line: what you reviewed, and your verdict - ship, ship with fixes, or
 do not ship. If you found nothing, say so plainly; an empty review is a real

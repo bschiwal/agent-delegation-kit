@@ -103,10 +103,26 @@ location has no goal row" - you have not yet shown a defect. Settle it:
 Never report an unverified data assumption as a finding. Only logic that is wrong
 for data the model can plainly hold counts.
 
+**A replica must not reuse the code under test.** When you compute the number a
+measure should return, use different mechanics from the measure - for example
+`FILTER` over `ALL` plus `MAXX` where the measure uses `CALCULATE` with `ALL`, or
+the other way round. A replica that copies the measure's lookup copies its bug,
+and then confirms the wrong number.
+
+## Fix the pattern, not the instance
+
+When a finding is a **pattern** - a grain trap, a filter-context leak, a wrong
+helper or lookup - grep the model export or SQL for every other object built the
+same way. List each one under **Same pattern elsewhere** on that finding, so the
+fix covers all of them. A sibling measure with the same trap costs a whole extra
+build run when it surfaces later.
+
 ## Output
 
 **Findings** - per finding, worst first: **object** - the defect - **the wrong
-number it produces** - **used by N visuals / not used** - **the fix**.
+number it produces** - **used by N visuals / not used** - **the fix** - **Same
+pattern elsewhere** (objects, or "none"). Keep each finding to about four lines.
+Quote a query result as its number, not a pasted table.
 
 **Checked live** - assumptions you settled with a query: the query's purpose and
 result, one line each.

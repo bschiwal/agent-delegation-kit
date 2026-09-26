@@ -88,6 +88,13 @@ every one of your remaining turns.
   output, and query results beyond a screenful go to `log-triager`, or through a
   small script that counts, filters and summarises. Never read raw output that
   runs to thousands of tokens.
+- **Write the filter once per project.** When a build will validate many times -
+  a PBIR report, say - get one summary script written before the builders start
+  (a one-off `implementer` run). It prints error and warning counts, the change
+  against a named baseline file, and the diagnostics for a given list of page
+  IDs or files. Give its exact command in every brief. Otherwise each agent
+  writes its own filter, and parallel builders spend turns reconciling counts
+  that don't agree.
 - **Shape queries to return little.** For tools only you can run (live model
   queries, MCP), ask for the answer rather than the data - aggregates, counts,
   `TOPN`, one row per question - not a 100-row dump to inspect.
@@ -124,6 +131,10 @@ every one of your remaining turns.
   context is already large, is cheaper to replace: start a new run with a
   narrow brief built from what the first one found - the root cause, the files,
   what is left. Every turn of a resumed run re-reads everything it has read.
+- **Read the progress file before resuming.** Builders log milestones to
+  `.claude/runs/<step>.md`. When one stops at its limit, read that file first.
+  If the work is done and only the report is missing, you have the report and
+  no resume is needed.
 
 ## Sequence by dependency, not by job type
 
@@ -157,6 +168,18 @@ finishes:
 
 Keep dependent steps sequential. Run everything else in parallel.
 
+**Parallel builders never run shared global steps.** Scripts that act on the whole
+project - a `run_all` that also prunes, codegen, migrations - and shared
+registries belong to you. Each builder runs only its own generator and reports
+what needs registering. When all of them have finished, you register their
+output and run the global step once. A builder's prune can otherwise delete
+another builder's unregistered work. The builder prompts already say this; say
+it in the brief anyway when a global script exists, and name it.
+
+**Artefacts the generators don't own** - bookmarks and anything else authored in
+Desktop or another tool - are fixed by the user in that tool, not edited by hand.
+Hand-edit one only with the user's approval first, and say which you did.
+
 ## Review what is reviewable
 
 Every non-trivial code change is reviewed before you call it done. Cheap build plus
@@ -185,12 +208,20 @@ Each delegation gets a self-contained brief. The agent sees only what you send:
 - **Where** - exact `file:line` locations. Never make an agent rediscover what
   recon already found.
 - **Constraints** - conventions, what not to touch, runtime (for example Node),
-  backups if there's no git, how to verify.
+  how to verify.
+- **Facts about the environment** - stated, not left to the agent: whether the
+  target folder is in git, and the **exact command lines** for backup, diff and
+  validation. Never just a gate name or a script name - agents guess the
+  arguments differently, and a guessed backup folder is a missing backup.
+- **Step name** - for the builder's progress and details file,
+  `.claude/runs/<step>.md`.
 - **Known and accepted issues** - things already documented, deliberate, or
   deferred, so a reviewer doesn't re-report them and a builder doesn't "fix" them.
   Write "none" if there are none. Leaving this out is what makes reviewers
   re-report known items.
-- **Done looks like** - the concrete output you need back.
+- **Done looks like** - the concrete output you need back. For builders, that
+  is a reply of about 25 lines or fewer plus the details file. Ask for the few
+  numbers you need, not full file lists or transcripts.
 
 Paths and line ranges, never pasted file contents.
 
@@ -241,6 +272,10 @@ run. Nothing stops you automatically, so hold yourself to a budget of about
 back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
+
+**By call 26, write your reply, whatever state the work is in.** Items
+still open go under **Not finished**, with where to resume. A fix loop that
+runs past this point costs a whole resume just to get the report.
 
 Spend turns carefully:
 

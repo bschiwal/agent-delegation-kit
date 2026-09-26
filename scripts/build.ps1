@@ -266,6 +266,10 @@ function Get-BudgetFooter {
     param($MaxTurns, [switch]$Soft)
     if ($null -eq $MaxTurns) { $MaxTurns = 20 }
     $wrap = [math]::Max(1, [math]::Floor([int]$MaxTurns * 0.75))
+    # A second, later deadline for the reply itself. The 2026-09-25 AAR: all four
+    # 40-turn page builders stopped new work on time, then spent the last ten turns
+    # in fix loops and hit the cap before replying.
+    $reply = [math]::Max($wrap + 1, [int]$MaxTurns - 4)
     $lines = @('', '## Turn budget', '')
     if (-not $Soft) {
         $lines += "You have at most **$MaxTurns turns**, and every turn re-reads your whole"
@@ -280,6 +284,11 @@ function Get-BudgetFooter {
     }
     $lines += 'what is done, what is left, and exactly where to resume. A run cut off at the'
     $lines += 'limit loses everything it had not yet reported and has to be paid for again.'
+    $lines += ''
+    if (-not $Soft) { $unit = 'turn' } else { $unit = 'call' }
+    $lines += "**By $unit $reply, write your reply, whatever state the work is in.** Items"
+    $lines += 'still open go under **Not finished**, with where to resume. A fix loop that'
+    $lines += 'runs past this point costs a whole resume just to get the report.'
     $lines += ''
     $lines += 'Spend turns carefully:'
     $lines += ''

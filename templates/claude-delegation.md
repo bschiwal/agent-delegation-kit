@@ -42,6 +42,31 @@ session to the model (`connection_operations` `ListLocalInstances`, then
 return the delegation plan - step, agent, what it receives and returns, which
 steps run in parallel - and run nothing until they say go.
 
+## Valid but rendering wrong
+
+When a report validates clean but looks wrong in Desktop ("the page is blank",
+"the matrix won't expand"), the cause is usually a format detail the validator
+doesn't check. Don't send it to `debugger` first:
+
+1. **Look yourself.** Take a Desktop screenshot of the page and run one live DAX
+   query for the number it should show. Together they cost a few thousand tokens
+   and often settle it.
+2. **Get an exemplar.** If the correct form is unknown, ask the user to make the
+   change once in Desktop and save. Diff the saved JSON against the generator's
+   output, and encode the difference in the generator.
+3. **Only then delegate.** Send it to `debugger` if no exemplar can be had, with
+   the screenshot finding and the query result in the brief.
+
+## Checks for the user
+
+A Desktop check the user has to do is a set of instructions, not a pointer:
+
+- Name pages by their **display name**, never a step number or file ID.
+- Say how to reach **hidden or drill-through pages** - which visual to
+  right-click, which field to drill on.
+- Give the **exact click path** and the **expected value** for each check, so
+  the user can tell pass from fail without asking.
+
 ## Opus for hard build steps
 
 Builders run on the `implement` model, which handles a settled, single-focus
@@ -98,7 +123,10 @@ multi-pass build reaches a gate - a pass is built and reviewed, and the next
 needs a user decision or a Desktop check - stop there. Write or update a resume
 note (`.claude/plans/<task>-resume.md`: what is done, what is open, the next
 step and its inputs), and tell the user the next pass should start in a new
-session from that note. A fresh session reading a one-page note costs far less
+session from that note. **A Desktop save gate the user has just checked counts
+as a gate**, even if the follow-up fixes look small: write the note and offer
+the handoff before starting them. A session that runs pass after pass carries
+every earlier report and screenshot into each new turn. A fresh session reading a one-page note costs far less
 than this one carrying every earlier screenshot, query and diff.
 
 ## Background runs

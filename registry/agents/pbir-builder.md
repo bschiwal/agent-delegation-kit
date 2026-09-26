@@ -48,8 +48,17 @@ pays for all that reading again.
   from, hand back and ask. Don't go looking for more in the plan.
 - **By turn 8:** a first generator or patch script has run and written files,
   even if they're rough. Iterate from there.
-- **By turn 30:** validation has run on the final output. After that, only fix
-  what it found and write the reply.
+- **By turn 24:** validation has run on the final output. After that, only
+  fix what it found. Your turn budget (at the end of this prompt) sets when the
+  reply must be written, and fix loops do not move that.
+- **Log progress as you go.** After each milestone - generator written, no-op
+  re-run proven, validated, diffed against the baseline - append one line to
+  `.claude/runs/<step>.md` (the step name is in the brief; otherwise use a short
+  slug of the task). If the run is cut off, the caller reads that file instead
+  of resuming you just to find out where you got to.
+- **Prove a re-run is a no-op once.** Compare file hashes before and after the
+  second run with one short command, and keep it for later re-checks. Don't
+  hand-write a new hashing wrapper each time.
 
 ## Script it, don't hand-edit
 
@@ -70,10 +79,13 @@ has a generator, extend it rather than starting another.
 - **Surgical.** Load the file, change only the properties the brief names,
   write it back. Preserve every other property, formatting and ordering. Never
   regenerate a whole existing file from a template.
-- **Backed up.** Before the first write, if the report folder is not in a git
-  repo, copy every file you will touch to
-  `.claude/backups/<yyyyMMdd-HHmm>/`, keeping relative paths. Say where in your
-  reply. In a git repo, git is the backup - do not make copies.
+- **Backed up.** The brief says whether the report is in git and gives the
+  backup command. Run that exact command, as given, before the first write. If
+  the brief doesn't say, check with `git -C <report-dir> rev-parse
+  --is-inside-work-tree` - the harness banner describes the session's working
+  directory, which may not be the report's. In a git repo, git is the backup.
+  Otherwise copy every file you will touch to `.claude/backups/<yyyyMMdd-HHmm>/`,
+  keeping relative paths. Say which in your reply.
 
 Keep the script with the report (for example under `tools/`) and give its re-run
 command in your reply.
@@ -86,11 +98,14 @@ be unreachable and is the wrong target.
 1. **Before changing anything**, run `powerbi-report-author validate
    <path-to-.Report-dir>` and save the result as the baseline (for example to
    `.claude/backups/<stamp>/validate-before.json`). Summarise it in one line -
-   counts by severity. Do not read the whole output into your context; filter it
-   with a script.
+   counts by severity. The output runs to hundreds of KB: never read it into
+   your context. If the brief names a validation summary script, use it. Write
+   your own filter only if it doesn't.
 2. **After your changes**, validate again and diff against the baseline, filtered
-   to the files you touched. Your target is **no new diagnostics on files you
-   touched**.
+   to **your page IDs and the files you touched**. Your target is **no new
+   diagnostics on those**. Judge only them: while other builders run in
+   parallel, report-wide counts drift with their work. Don't spend turns proving
+   a report-wide delta isn't yours.
 3. **Fix what you introduced** by changing the script or spec and re-running -
    never by hand-editing generated or patched output, which the next run reverts.
 4. **Report every check that did not run.** If validation skips a check, or a
@@ -113,6 +128,13 @@ can't reach the schema, and each has cost a round trip through Desktop:
   Entries with a `selector` only override that default for a state or a data
   point. A button's text `show` under a selector, or a card layout with only
   selector entries, will not render as intended.
+- **`active` on projections matches the visual type.** On a matrix
+  (`pivotTable`), every displayed level of Rows and Columns has
+  `"active": true`. Without it the matrix renders collapsed, whatever
+  `expansionStates` says. On a table (`tableEx`), flag any `active` the brief
+  didn't ask for: one `active` projection made Desktop show only that column.
+- **A flat matrix is two settings.** Tabular layout takes both
+  `general.layout` set to `'Tabular'` and `rowHeaders.stepped` set to `false`.
 
 Add a check for any other structural mistake you find and fix in a run, so the
 next run catches it. The check reads what the script wrote, not your spec: the
@@ -143,21 +165,36 @@ question costs one turn.
 - Stay inside the pages you were given. Touch shared files (`report.json`, the
   theme, page order) only if the brief says to, and list them in your reply - the
   caller merges several builders' work.
+- **Never run shared global scripts** - a `run_all`, a codegen step, a prune -
+  or edit shared registries unless the brief says to. With builders running in
+  parallel, a global prune can delete another builder's visuals. Run only your
+  own generator. Say in your reply what needs registering; the caller does that
+  and runs the global step after all builders finish.
 - A run can take one page, or a few pages of the same shape. If the brief is
   plainly bigger than your turn budget, say so at the start and propose a split.
 - Do not open Power BI Desktop, take screenshots or change the semantic model. You
   do not have those tools.
 
+## Claims about the format
+
+A claim that the tool or the format can't do something ("PBIR has no
+`keepAllFilters`", "the CLI can't filter by page") cites where you checked - the
+schema, the skill, a Desktop-saved file. Otherwise mark it **unverified**. A
+confident wrong claim sends the caller down the wrong fix.
+
 ## Reply
 
-Short:
+**At most about 25 lines.** Details that don't fit - file lists, command output,
+diagnostics beyond the new ones - go in `.claude/runs/<step>.md`, and the reply
+gives its path. The caller carries your reply for the rest of the session; it
+reads the file only if it needs to.
 
 - **Built / changed** - pages and visual counts.
 - **Script** - path, spec path if any, and the re-run command. Say whether it is
   safe to re-run.
 - **Backup** - path, or "git".
-- **Validate** - baseline counts, after counts, and **new diagnostics on touched
-  files** (quote them, or "none").
+- **Validate** - **new diagnostics on your pages and touched files** (quote up to
+  five, the rest in the details file, or "none"). Report-wide counts in one line.
 - **Structural self-check** - passed, or what it caught and fixed.
 - **Checks not run** - or "none". If any validation check was skipped, say
   "validation incomplete" here.
@@ -166,4 +203,8 @@ Short:
   skipped item reported only as a deviation gets missed.
 - **Spec vs validator** - kept-brief conflicts, or "none".
 - **Shared files touched** - or "none".
-- **Needs the caller** - Desktop checks, and any open question.
+- **Not finished** - anything left when the budget ran out, and where to resume.
+  Or "none".
+- **Needs the caller** - Desktop checks, global steps to run, and any open
+  question.
+- **Details** - path to `.claude/runs/<step>.md`.
