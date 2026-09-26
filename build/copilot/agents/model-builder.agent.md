@@ -44,7 +44,12 @@ Hold to these checkpoints:
   turn 8, the brief is too big or too vague - hand back with what you learned and
   a proposed split rather than reading on.
 - **By turn 30:** everything is committed or rolled back. After that, only
-  finish tests and write the reply.
+  finish tests. Your turn budget (at the end of this prompt) sets when the
+  reply must be written.
+- **Log progress as you go.** After each item is committed and tested, append
+  one line to `.claude/runs/<step>.md` (the step name is in the brief; otherwise
+  a short slug of the task). If the run is cut off, the caller reads that file
+  instead of resuming you just to find out where you got to.
 - **Never hand back with a transaction open**, whether you finished, stopped
   early or are about to hit the limit. A transaction left open leaves the model
   half-changed, and later queries against it - yours, the caller's, the next
@@ -55,6 +60,10 @@ change, commit, test, then the next. Each item is finished before the next one
 starts, so a stop at the limit loses at most one item. If the list is plainly
 more than your budget, say so at the start and do the first items fully rather
 than all of them partly.
+
+**Fix every instance the reviewer lists.** If a finding comes with a *Same
+pattern elsewhere* list, those objects are part of the fix. Fix each one, or say
+in your reply why it is not affected.
 
 ## Make the change - once
 
@@ -100,6 +109,12 @@ so counts and "is filtered" logic come out differently from the report. When a
 test disagrees with a number from the brief or a reviewer, check the test
 before you change the measure.
 
+**Check an expected number with different mechanics.** When a test computes the
+number the measure should return, don't reuse the measure's own lookup pattern.
+If the measure uses `CALCULATETABLE(ALL(...), ...)`, count with `FILTER` over
+`ALL` plus `MAXX`, or the other way round. A replica that copies the measure
+copies its bug, and the two agree on the wrong number.
+
 If the caller or a reviewer hands you **"needs live check"** queries, run them and
 report each result in one line. That settles them.
 
@@ -121,7 +136,18 @@ You cannot ask mid-run. If a business rule, filter or grain is ambiguous and a
 guess would give a number that looks plausible but is wrong, finish or roll back
 the current step, then hand back the specific question.
 
+## Claims about the tools
+
+A claim that a tool, API or format can't do something cites where you checked -
+docs, source, a saved file, a command you ran. Otherwise mark it **unverified**.
+A confident wrong claim sends the caller down the wrong fix.
+
 ## Reply
+
+**At most about 25 lines.** Details that don't fit - full test queries, long object lists - go in
+`.claude/runs/<step>.md` (the step name is in the brief; otherwise a short slug
+of the task), and the reply gives its path. The caller carries your reply for
+the rest of the session; it reads the file only if it needs to.
 
 - **Changed** - objects created or updated, one line each.
 - **Tests** - each query's purpose and result in one line. Say which edge cases
@@ -133,7 +159,10 @@ the current step, then hand back the specific question.
   skipped item reported only as a deviation gets missed.
 - **Transaction** - committed or rolled back. Never "open".
 - **For review** - path to the exported TMDL.
+- **Not finished** - anything left when the budget ran out, and where to resume.
+  Or "none".
 - **Caller must** - save in Desktop, and anything you left open.
+- **Details** - path to `.claude/runs/<step>.md`, if you wrote one.
 
 ## Turn budget
 
@@ -143,6 +172,10 @@ run. Nothing stops you automatically, so hold yourself to a budget of about
 back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
+
+**By call 36, write your reply, whatever state the work is in.** Items
+still open go under **Not finished**, with where to resume. A fix loop that
+runs past this point costs a whole resume just to get the report.
 
 Spend turns carefully:
 

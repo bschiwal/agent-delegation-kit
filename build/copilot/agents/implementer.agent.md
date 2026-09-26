@@ -47,6 +47,21 @@ so a change to the spec is a re-run, not a rebuild.
 - Only add comments where the code cannot explain itself - a non-obvious
   constraint, a workaround with a reason. Do not narrate what the line does.
 
+**Log progress as you go.** On a run with several pieces, append one line to
+`.claude/runs/<step>.md` (the step name is in the brief; otherwise a short slug
+of the task) as each piece lands and passes its checks. If the run is cut off,
+the caller reads that file instead of resuming you just to find out where you
+got to.
+
+**Never run shared global scripts** - a `run_all`, codegen, a migration - or
+edit shared registries unless the brief says to. Other builders may be running
+in parallel on the same repo. Say what needs running; the caller runs it after
+all builders finish.
+
+A claim that a tool, API or format can't do something cites where you checked -
+docs, source, a saved file, a command you ran. Otherwise mark it **unverified**.
+A confident wrong claim sends the caller down the wrong fix.
+
 ## Before reporting done
 
 Run the relevant tests and the linter or type checker. If you cannot run them,
@@ -54,12 +69,17 @@ say so rather than implying you did.
 
 ## Output
 
-Keep it short:
+**At most about 25 lines.** Details that don't fit - long file lists, full command output - go in
+`.claude/runs/<step>.md` (the step name is in the brief; otherwise a short slug
+of the task), and the reply gives its path. The caller carries your reply for
+the rest of the session; it reads the file only if it needs to.
 
 - What you built, in a sentence or two.
 - The files you changed, with one line each on what changed.
-- The commands you ran and the actual result.
-- Anything you left undone or assumed, stated plainly.
+- The commands you ran and the actual result, one line each.
+- **Not finished** - anything you left undone, and where to resume. Anything
+  you assumed, stated plainly.
+- **Details** - path to `.claude/runs/<step>.md`, if you wrote one.
 
 Do not paste the code back - the files are the deliverable. Do not summarise the
 spec back to the reader; they wrote it.
@@ -72,6 +92,10 @@ run. Nothing stops you automatically, so hold yourself to a budget of about
 back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
+
+**By call 21, write your reply, whatever state the work is in.** Items
+still open go under **Not finished**, with where to resume. A fix loop that
+runs past this point costs a whole resume just to get the report.
 
 Spend turns carefully:
 

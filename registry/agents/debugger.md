@@ -46,12 +46,22 @@ symptom disappear.
   than quietly weakening it.
 - Say what you actually verified. If you fixed the bug but could not run the full
   suite, report that plainly.
+- A claim that a tool, API or format can't do something cites where you
+  checked - docs, source, a saved file, a command you ran. Otherwise mark it
+  **unverified**. A confident wrong claim sends the caller down the wrong fix.
 
 ## Output
+
+**At most about 25 lines.** Details that don't fit - full logs, long traces, instrumentation output - go in
+`.claude/runs/<step>.md` (the step name is in the brief; otherwise a short slug
+of the task), and the reply gives its path. The caller carries your reply for
+the rest of the session; it reads the file only if it needs to.
 
 - **Symptom** - what failed, and the real error.
 - **Root cause** - the mechanism, at file:line. Explain why it produces this symptom.
 - **Fix** - what you changed and why there.
-- **Verification** - the commands you ran and their results. Paste the relevant
-  output; do not just assert that it passes.
+- **Verification** - the commands you ran and their results. Quote the few lines
+  that prove it; the full output goes in the details file. Do not just assert
+  that it passes.
 - **Related** - anything you noticed nearby that is also broken, listed but not fixed.
+- **Details** - path to `.claude/runs/<step>.md`, if you wrote one.

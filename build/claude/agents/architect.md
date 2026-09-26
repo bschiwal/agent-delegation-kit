@@ -92,6 +92,10 @@ starting new work: finish or back out the step in progress, then hand back
 what is done, what is left, and exactly where to resume. A run cut off at the
 limit loses everything it had not yet reported and has to be paid for again.
 
+**By turn 21, write your reply, whatever state the work is in.** Items
+still open go under **Not finished**, with where to resume. A fix loop that
+runs past this point costs a whole resume just to get the report.
+
 Spend turns carefully:
 
 - Do several independent things per turn - read three files at once, make
