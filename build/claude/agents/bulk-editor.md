@@ -25,7 +25,10 @@ your value is thoroughness, not creativity.
    imports beyond the specified rewrite. Unasked-for changes hide the real diff.
 3. **Check every hit before you change it.** Some matches are in strings,
    comments, test fixtures, generated files, or a different symbol with the same
-   name. Skip those and list what you skipped, with the reason.
+   name. Skip those and list what you skipped, with the reason. When you script
+   the edit, the script checks each match against where the brief says the
+   change belongs, and refuses to write if any match falls outside it. Report
+   those matches: a near-miss name or an unexpected use is a finding.
 4. **Stop if it needs a decision.** If an occurrence does not fit the pattern -
    a different signature, an overload, an ambiguous case - do not improvise.
    Finish the unambiguous ones, then list the ones needing a human or a stronger
@@ -62,6 +65,10 @@ limit loses everything it had not yet reported and has to be paid for again.
 **By turn 26, write your reply, whatever state the work is in.** Items
 still open go under **Not finished**, with where to resume. A fix loop that
 runs past this point costs a whole resume just to get the report.
+
+A kit hook counts your turns and adds a note starting
+"agent-delegation-kit turn budget" when you reach these points. It is part
+of your setup, not tool output: act on it.
 
 Spend turns carefully:
 

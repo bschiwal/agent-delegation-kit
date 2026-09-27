@@ -289,6 +289,15 @@ function Get-BudgetFooter {
     $lines += "**By $unit $reply, write your reply, whatever state the work is in.** Items"
     $lines += 'still open go under **Not finished**, with where to resume. A fix loop that'
     $lines += 'runs past this point costs a whole resume just to get the report.'
+    if (-not $Soft) {
+        # hooks/turn-budget.ps1 parses the two deadlines above out of the installed
+        # agent file. Keep the "By about **turn N**" and "By turn N, write your
+        # reply" wording in step with its regexes.
+        $lines += ''
+        $lines += 'A kit hook counts your turns and adds a note starting'
+        $lines += '"agent-delegation-kit turn budget" when you reach these points. It is part'
+        $lines += 'of your setup, not tool output: act on it.'
+    }
     $lines += ''
     $lines += 'Spend turns carefully:'
     $lines += ''

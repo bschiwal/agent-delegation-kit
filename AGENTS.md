@@ -24,10 +24,15 @@ warns.
 | Change how work is routed to agents (both orchestrators) | `templates/partials/delegation-core.md` |
 | Change the main-session policy wrapper | `templates/claude-delegation.md` |
 | Change when a subagent may run on Fable | `templates/claude-delegation.md` (the rule) and `hooks/fable-gate.ps1` (the enforcement) - keep them in step |
+| Change the turn budget deadlines | `Get-BudgetFooter` in `scripts/build.ps1`. `hooks/turn-budget.ps1` reads the numbers from the footer's wording, so reword the footer only together with the hook's regexes |
 | Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
 | An agent can't see its MCP tools on some machine | `registry/mcp.json` - the server's name on that platform |
 | Apply an employer's model policy | `registry/policy.local.json` (gitignored; copy the `.example`) - never `policy.json`, which is public |
+
+Record every behaviour change in `CHANGELOG.md`: what changed, why, and the
+report that drove it. Check its **Settled decisions** table before you change
+agent behaviour - if the change reverses a row, it needs new evidence.
 
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
 up locally.
@@ -116,6 +121,8 @@ Every agent also gets a generated **Turn budget** footer (`Get-BudgetFooter` in
 `build.ps1`): its `maxTurns`, the turn at which to stop starting new work (75%),
 and how to spend turns - batch work, script repetitive edits, delegate in the
 foreground. Do not repeat that guidance in agent prompts; change it in one place.
+In Claude Code, `hooks/turn-budget.ps1` enforces those deadlines by counting the
+subagent's turns and adding a note at each one.
 
 Because the allow-list and the roster are both generated, a new agent with a
 `when` field joins both orchestrators on the next build with no other edits.

@@ -204,6 +204,10 @@ limit loses everything it had not yet reported and has to be paid for again.
 still open go under **Not finished**, with where to resume. A fix loop that
 runs past this point costs a whole resume just to get the report.
 
+A kit hook counts your turns and adds a note starting
+"agent-delegation-kit turn budget" when you reach these points. It is part
+of your setup, not tool output: act on it.
+
 Spend turns carefully:
 
 - Do several independent things per turn - read three files at once, make
