@@ -29,6 +29,10 @@ warns.
 | An agent can't see its MCP tools on some machine | `registry/mcp.json` - the server's name on that platform |
 | Apply an employer's model policy | `registry/policy.local.json` (gitignored; copy the `.example`) - never `policy.json`, which is public |
 
+Record every behaviour change in `CHANGELOG.md`: what changed, why, and the
+report that drove it. Check its **Settled decisions** table before you change
+agent behaviour - if the change reverses a row, it needs new evidence.
+
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
 up locally.
 
