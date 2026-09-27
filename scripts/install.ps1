@@ -104,15 +104,16 @@ if ($Target -eq 'copilot' -or $Target -eq 'both') {
 # inside a marked block. CLAUDE.md belongs to the user, so the kit only ever adds
 # or removes its own block and never rewrites anything else in the file.
 
-# The Fable gate hook ships with the policy: the policy says Fable is by request
-# only, the hook enforces it. Project scope registers it in settings.local.json,
-# which is not committed, because the hook command holds an absolute path.
+# The kit's hooks ship with the policy, which states the rules they enforce: the
+# Fable gate (Fable by request only) and the turn budget (a subagent is told
+# which turn it is on). Project scope registers them in settings.local.json,
+# which is not committed, because each hook command holds an absolute path.
 if ($Scope -eq 'user') {
     $claudeSpec = [pscustomobject]@{
         PolicyFile = Join-Path $userHome '.claude\agent-delegation.md'
         ClaudeMd   = Join-Path $userHome '.claude\CLAUDE.md'
         Import     = '@~/.claude/agent-delegation.md'
-        HookFile   = Join-Path $userHome '.claude\hooks\fable-gate.ps1'
+        HookDir    = Join-Path $userHome '.claude\hooks'
         Settings   = Join-Path $userHome '.claude\settings.json'
     }
 }
@@ -121,7 +122,7 @@ else {
         PolicyFile = Join-Path $Path '.claude\agent-delegation.md'
         ClaudeMd   = Join-Path $Path 'CLAUDE.md'
         Import     = '@.claude/agent-delegation.md'
-        HookFile   = Join-Path $Path '.claude\hooks\fable-gate.ps1'
+        HookDir    = Join-Path $Path '.claude\hooks'
         Settings   = Join-Path $Path '.claude\settings.local.json'
     }
 }
@@ -146,18 +147,24 @@ if ($claudeTarget) {
     }
 }
 
+# Every hook the kit installs: which event, which tools, and the script in hooks/.
+$kitHooks = @(
+    [pscustomobject]@{ Name = 'Fable gate';  Script = 'fable-gate.ps1';  Event = 'PreToolUse';  Matcher = 'Agent|Task'; Timeout = 15 },
+    [pscustomobject]@{ Name = 'Turn budget'; Script = 'turn-budget.ps1'; Event = 'PostToolUse'; Matcher = '*';          Timeout = 15 }
+)
+
 function Test-OrchestratorAgent {
     param([string]$File)
     $head = [System.IO.File]::ReadAllText($File)
     return ($head -match '(?m)^tools:.*Agent\(')
 }
 
-# Adds or removes the kit's PreToolUse entry in a Claude settings file. The entry
-# is recognised by its command naming fable-gate.ps1; every other setting and hook
-# is kept. Writes only when something changes, after copying the file to
+# Adds or removes one kit hook entry in a Claude settings file. The entry is
+# recognised by its command naming the hook's script; every other setting and
+# hook is kept. Writes only when something changes, after copying the file to
 # <name>.kit-backup. Returns a short description of what it did, or $null.
-function Set-FableGateHook {
-    param([string]$SettingsPath, [string]$HookFile, [switch]$Remove)
+function Set-KitHook {
+    param([string]$SettingsPath, $Hook, [string]$HookFile, [switch]$Remove)
 
     $hadFile = Test-Path $SettingsPath
     if ($hadFile) {
@@ -171,9 +178,11 @@ function Set-FableGateHook {
     }
 
     $command = 'powershell -NoProfile -ExecutionPolicy Bypass -File "' + $HookFile + '"'
+    $hookEvent = $Hook.Event
+    $scriptPattern = [regex]::Escape($Hook.Script)
     $hooks = $settings.hooks
     $groups = @()
-    if ($null -ne $hooks -and $null -ne $hooks.PreToolUse) { $groups = @($hooks.PreToolUse) }
+    if ($null -ne $hooks -and $null -ne $hooks.PSObject.Properties[$hookEvent]) { $groups = @($hooks.$hookEvent) }
 
     # Drop our hook from every group, and any group it leaves empty.
     $found = $false
@@ -182,10 +191,10 @@ function Set-FableGateHook {
     foreach ($g in $groups) {
         if ($null -eq $g) { continue }
         $inner = @($g.hooks | Where-Object { $null -ne $_ })
-        $others = @($inner | Where-Object { "$($_.command)" -notmatch 'fable-gate\.ps1' })
+        $others = @($inner | Where-Object { "$($_.command)" -notmatch $scriptPattern })
         if ($others.Count -ne $inner.Count) {
             $found = $true
-            if ($inner.Count -eq 1 -and $inner[0].command -eq $command -and $g.matcher -eq 'Agent|Task') { $alreadyCurrent = $true }
+            if ($inner.Count -eq 1 -and $inner[0].command -eq $command -and $g.matcher -eq $Hook.Matcher) { $alreadyCurrent = $true }
             if ($others.Count -eq 0) { continue }
             $g.hooks = $others
         }
@@ -197,8 +206,8 @@ function Set-FableGateHook {
 
     if (-not $Remove) {
         $kept += [pscustomobject][ordered]@{
-            matcher = 'Agent|Task'
-            hooks   = @([pscustomobject][ordered]@{ type = 'command'; command = $command; timeout = 15 })
+            matcher = $Hook.Matcher
+            hooks   = @([pscustomobject][ordered]@{ type = 'command'; command = $command; timeout = $Hook.Timeout })
         }
     }
 
@@ -207,13 +216,13 @@ function Set-FableGateHook {
         $settings | Add-Member -NotePropertyName hooks -NotePropertyValue $hooks
     }
     if ($kept.Count -gt 0) {
-        if ($null -eq $hooks.PSObject.Properties['PreToolUse']) {
-            $hooks | Add-Member -NotePropertyName PreToolUse -NotePropertyValue $kept
+        if ($null -eq $hooks.PSObject.Properties[$hookEvent]) {
+            $hooks | Add-Member -NotePropertyName $hookEvent -NotePropertyValue $kept
         }
-        else { $hooks.PreToolUse = $kept }
+        else { $hooks.$hookEvent = $kept }
     }
     else {
-        $hooks.PSObject.Properties.Remove('PreToolUse')
+        $hooks.PSObject.Properties.Remove($hookEvent)
         if (@($hooks.PSObject.Properties).Count -eq 0) { $settings.PSObject.Properties.Remove('hooks') }
     }
 
@@ -223,25 +232,28 @@ function Set-FableGateHook {
         if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     }
     Write-Utf8NoBom $SettingsPath ((ConvertTo-Json -InputObject $settings -Depth 32) + "`n")
-    if ($Remove) { return "Fable gate hook entry in $SettingsPath" }
+    if ($Remove) { return "$($Hook.Name) hook entry in $SettingsPath" }
     return 'registered'
 }
 
 function Remove-ClaudeInstructions {
     param($Spec)
     $removed = @()
-    $hookEntryGone = $true
-    try {
-        $r = Set-FableGateHook -SettingsPath $Spec.Settings -HookFile $Spec.HookFile -Remove
-        if ($null -ne $r) { $removed += $r }
-    }
-    catch {
-        $hookEntryGone = $false
-        Write-Warning "Could not read $($Spec.Settings) ($($_.Exception.Message)). Remove the PreToolUse entry naming fable-gate.ps1 by hand; the hook script is left in place until then."
-    }
-    if ($hookEntryGone -and (Test-Path $Spec.HookFile) -and [System.IO.File]::ReadAllText($Spec.HookFile).Contains($policyMarker)) {
-        Remove-Item $Spec.HookFile -Force
-        $removed += $Spec.HookFile
+    foreach ($h in $kitHooks) {
+        $hookFile = Join-Path $Spec.HookDir $h.Script
+        $hookEntryGone = $true
+        try {
+            $r = Set-KitHook -SettingsPath $Spec.Settings -Hook $h -HookFile $hookFile -Remove
+            if ($null -ne $r) { $removed += $r }
+        }
+        catch {
+            $hookEntryGone = $false
+            Write-Warning "Could not read $($Spec.Settings) ($($_.Exception.Message)). Remove the $($h.Event) entry naming $($h.Script) by hand; the hook script is left in place until then."
+        }
+        if ($hookEntryGone -and (Test-Path $hookFile) -and [System.IO.File]::ReadAllText($hookFile).Contains($policyMarker)) {
+            Remove-Item $hookFile -Force
+            $removed += $hookFile
+        }
     }
     if (Test-Path $Spec.ClaudeMd) {
         $text = [System.IO.File]::ReadAllText($Spec.ClaudeMd)
@@ -410,24 +422,25 @@ if ($null -ne $claudeInstr) {
         Write-Host "  $($claudeInstr.ClaudeMd): $mdAction"
     }
 
-    $hookOurs = $true
-    if ((Test-Path $claudeInstr.HookFile) -and -not $Force) {
-        $hookOurs = [System.IO.File]::ReadAllText($claudeInstr.HookFile).Contains($policyMarker)
-    }
-    if (-not $hookOurs) {
-        $blocked += $claudeInstr.HookFile
-    }
-    else {
-        $hdir = Split-Path $claudeInstr.HookFile -Parent
-        if (-not (Test-Path $hdir)) { New-Item -ItemType Directory -Path $hdir -Force | Out-Null }
-        Write-Utf8NoBom $claudeInstr.HookFile ([System.IO.File]::ReadAllText((Join-Path $repo 'hooks\fable-gate.ps1')))
-        Write-Host "Fable gate hook -> $($claudeInstr.HookFile)" -ForegroundColor Green
+    foreach ($h in $kitHooks) {
+        $hookFile = Join-Path $claudeInstr.HookDir $h.Script
+        $hookOurs = $true
+        if ((Test-Path $hookFile) -and -not $Force) {
+            $hookOurs = [System.IO.File]::ReadAllText($hookFile).Contains($policyMarker)
+        }
+        if (-not $hookOurs) {
+            $blocked += $hookFile
+            continue
+        }
+        if (-not (Test-Path $claudeInstr.HookDir)) { New-Item -ItemType Directory -Path $claudeInstr.HookDir -Force | Out-Null }
+        Write-Utf8NoBom $hookFile ([System.IO.File]::ReadAllText((Join-Path (Join-Path $repo 'hooks') $h.Script)))
+        Write-Host "$($h.Name) hook -> $hookFile" -ForegroundColor Green
         try {
-            $hookAction = Set-FableGateHook -SettingsPath $claudeInstr.Settings -HookFile $claudeInstr.HookFile
+            $hookAction = Set-KitHook -SettingsPath $claudeInstr.Settings -Hook $h -HookFile $hookFile
             Write-Host "  $($claudeInstr.Settings): $hookAction"
         }
         catch {
-            Write-Warning "Could not update $($claudeInstr.Settings) ($($_.Exception.Message)). The hook is NOT active. Add a PreToolUse entry by hand: matcher 'Agent|Task', command: powershell -NoProfile -ExecutionPolicy Bypass -File `"$($claudeInstr.HookFile)`""
+            Write-Warning "Could not update $($claudeInstr.Settings) ($($_.Exception.Message)). The $($h.Name) hook is NOT active. Add a $($h.Event) entry by hand: matcher '$($h.Matcher)', command: powershell -NoProfile -ExecutionPolicy Bypass -File `"$hookFile`""
         }
     }
 }

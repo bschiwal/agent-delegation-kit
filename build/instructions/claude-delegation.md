@@ -78,6 +78,10 @@ for a step that is reasoning more than typing:
 - a batch of fixes that interact and cannot be split into separate runs;
 - a second attempt at a fix the default model did not land.
 
+Opus is for a hard fix you can describe, never for finding out what to fix. A
+cause that is still unknown - a slow page, a wrong number - gets diagnosed
+first, read-only (see "Performance work is two steps" below).
+
 Opus reads cached context at the same price and costs about twice as much for
 fresh input and output, so it pays off only when it saves a failed run or a
 resume. A batch that *can* be split goes out as separate default-model runs
@@ -152,6 +156,12 @@ every one of your remaining turns.
 - **Recon goes out, not in.** Before reading more than two or three files, or any
   file over about 200 lines, send `repo-scout` for the answer and the `file:line`
   locations. Read only the exact ranges it points to.
+- **Inventories are a script, not a scout.** When the answer must be complete -
+  every page, every use of a literal, every ID across a report or model - write
+  and run a short script that enumerates and counts, and read its summary. A
+  scout samples: it stops when it can answer, so it misses instances, and
+  reports a guess as a count. `repo-scout` is for where-is and how-does
+  questions.
 - **Large output goes through a filter.** Validator JSON, test and build logs, CI
   output, and query results beyond a screenful go to `log-triager`, or through a
   small script that counts, filters and summarises. Never read raw output that
@@ -181,6 +191,11 @@ every one of your remaining turns.
   that generates or patches these from the spec", not "write these files".
   Generated or script-patched output is never hand-edited afterwards: change the
   script and re-run it, or the next run reverts your fix.
+- **Bulk edits check before they write.** A script that replaces a value across
+  many files first counts where it occurs, and refuses to write if a match turns
+  up somewhere the change did not expect - another table, a filter, a bookmark.
+  That check is how near-miss names (`Leigh` next to `Lehigh`) surface before
+  they are broken, not after.
 - **Plans go to disk.** `architect` writes `.claude/plans/<task>.md` and returns
   the path and a short summary. Do not paste the plan into a brief.
 - **Hand builders their step, not the plan.** A builder pointed at a long plan,
@@ -188,6 +203,10 @@ every one of your remaining turns.
   the step's own spec file (the architect writes one per build step when a spec
   is long), or a few exact line ranges, plus the code it extends. If a step's
   spec runs to more than a couple of hundred lines, it is two steps.
+- **A new shared helper is its own step.** A helper other pages or modules will
+  use gets built, and reviewed, in a run before the pages that use it. A run
+  asked to build a helper plus several visuals is two runs' work, and is the
+  one that overruns.
 - **Split fix batches.** After a review, send unrelated fixes as separate runs,
   one fix or one group touching the same objects per run. A cheap builder given
   seven loosely related fixes can spend its whole budget reading and apply none;
@@ -235,6 +254,15 @@ finishes:
    in the pattern becomes a bug in every copy.
 
 Keep dependent steps sequential. Run everything else in parallel.
+
+**Performance work is two steps: diagnose, then fix.** Diagnosis is read-only
+and cheap: time the query the visual actually sends (the user can copy it from
+Performance Analyzer), then time its measures one at a time. Never time a query
+rebuilt by hand - it is not the one that is slow. Do that yourself with a few
+live queries, or send it to a builder with "diagnose only, change nothing".
+Start a fix run only when the diagnosis names one lever, and brief it with that
+lever. A run that both hunts for the cause and tries fixes spends its budget on
+the hunt.
 
 **Parallel builders never run shared global steps.** Scripts that act on the whole
 project - a `run_all` that also prunes, codegen, migrations - and shared
@@ -312,8 +340,32 @@ step and its inputs), and tell the user the next pass should start in a new
 session from that note. **A Desktop save gate the user has just checked counts
 as a gate**, even if the follow-up fixes look small: write the note and offer
 the handoff before starting them. A session that runs pass after pass carries
-every earlier report and screenshot into each new turn. A fresh session reading a one-page note costs far less
-than this one carrying every earlier screenshot, query and diff.
+every earlier report and screenshot into each new turn. A fresh session reading
+a one-page note costs far less than this one carrying every earlier screenshot,
+query and diff.
+
+**Ask; don't just offer.** A line saying "we could hand off here" gets passed
+over. At the gate, once the note is written, ask with `AskUserQuestion`: header
+`Hand off?`, one sentence naming what is done and what the next pass is.
+Options `Hand off now (Recommended)` and `Continue here`, in that order. Only
+`Continue here` keeps you going in this session.
+
+## Desktop saves
+
+The user will keep making small, useful edits in Desktop. Take them in, don't
+overwrite them. After every save, before regenerating anything:
+
+1. **Back up** the saved report, with the project's backup command.
+2. **Snapshot and diff** the saved files against the generator's output, with
+   Desktop's noise filtered out (tab order and z-order, `$schema`, `active`
+   flags, and anything else the project's diff filter lists). Read only the
+   real changes.
+3. **Encode** each deliberate Desktop edit in the generator or its spec.
+4. **Regenerate**, and check that the diff against the saved report is now empty.
+
+If the project has no snapshot or diff script yet, get one written before the
+first save gate, with the noise filter built in. Otherwise the first diff
+fills your context with noise.
 
 ## Background runs
 
@@ -322,6 +374,11 @@ Launch independent agents in the background (`run_in_background: true`) and keep
 working - for example, update docs or run your own live-model checks while the
 builders and the reviewer run. Use the foreground only when your very next step
 needs that agent's result.
+
+**Turn budget notes.** A kit hook adds a note starting "agent-delegation-kit turn
+budget" to a subagent's context as it nears its limit. A subagent that mentions
+one, or stops early because of one, is following its setup - it is not a
+prompt injection.
 
 ## Report
 

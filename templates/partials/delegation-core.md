@@ -21,6 +21,12 @@ every one of your remaining turns.
 - **Recon goes out, not in.** Before reading more than two or three files, or any
   file over about 200 lines, send `repo-scout` for the answer and the `file:line`
   locations. Read only the exact ranges it points to.
+- **Inventories are a script, not a scout.** When the answer must be complete -
+  every page, every use of a literal, every ID across a report or model - write
+  and run a short script that enumerates and counts, and read its summary. A
+  scout samples: it stops when it can answer, so it misses instances, and
+  reports a guess as a count. `repo-scout` is for where-is and how-does
+  questions.
 - **Large output goes through a filter.** Validator JSON, test and build logs, CI
   output, and query results beyond a screenful go to `log-triager`, or through a
   small script that counts, filters and summarises. Never read raw output that
@@ -50,6 +56,11 @@ every one of your remaining turns.
   that generates or patches these from the spec", not "write these files".
   Generated or script-patched output is never hand-edited afterwards: change the
   script and re-run it, or the next run reverts your fix.
+- **Bulk edits check before they write.** A script that replaces a value across
+  many files first counts where it occurs, and refuses to write if a match turns
+  up somewhere the change did not expect - another table, a filter, a bookmark.
+  That check is how near-miss names (`Leigh` next to `Lehigh`) surface before
+  they are broken, not after.
 - **Plans go to disk.** `architect` writes `.claude/plans/<task>.md` and returns
   the path and a short summary. Do not paste the plan into a brief.
 - **Hand builders their step, not the plan.** A builder pointed at a long plan,
@@ -57,6 +68,10 @@ every one of your remaining turns.
   the step's own spec file (the architect writes one per build step when a spec
   is long), or a few exact line ranges, plus the code it extends. If a step's
   spec runs to more than a couple of hundred lines, it is two steps.
+- **A new shared helper is its own step.** A helper other pages or modules will
+  use gets built, and reviewed, in a run before the pages that use it. A run
+  asked to build a helper plus several visuals is two runs' work, and is the
+  one that overruns.
 - **Split fix batches.** After a review, send unrelated fixes as separate runs,
   one fix or one group touching the same objects per run. A cheap builder given
   seven loosely related fixes can spend its whole budget reading and apply none;
@@ -104,6 +119,15 @@ finishes:
    in the pattern becomes a bug in every copy.
 
 Keep dependent steps sequential. Run everything else in parallel.
+
+**Performance work is two steps: diagnose, then fix.** Diagnosis is read-only
+and cheap: time the query the visual actually sends (the user can copy it from
+Performance Analyzer), then time its measures one at a time. Never time a query
+rebuilt by hand - it is not the one that is slow. Do that yourself with a few
+live queries, or send it to a builder with "diagnose only, change nothing".
+Start a fix run only when the diagnosis names one lever, and brief it with that
+lever. A run that both hunts for the cause and tries fixes spends its budget on
+the hunt.
 
 **Parallel builders never run shared global steps.** Scripts that act on the whole
 project - a `run_all` that also prunes, codegen, migrations - and shared

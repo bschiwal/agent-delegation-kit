@@ -78,6 +78,10 @@ for a step that is reasoning more than typing:
 - a batch of fixes that interact and cannot be split into separate runs;
 - a second attempt at a fix the default model did not land.
 
+Opus is for a hard fix you can describe, never for finding out what to fix. A
+cause that is still unknown - a slow page, a wrong number - gets diagnosed
+first, read-only (see "Performance work is two steps" below).
+
 Opus reads cached context at the same price and costs about twice as much for
 fresh input and output, so it pays off only when it saves a failed run or a
 resume. A batch that *can* be split goes out as separate default-model runs
@@ -126,8 +130,32 @@ step and its inputs), and tell the user the next pass should start in a new
 session from that note. **A Desktop save gate the user has just checked counts
 as a gate**, even if the follow-up fixes look small: write the note and offer
 the handoff before starting them. A session that runs pass after pass carries
-every earlier report and screenshot into each new turn. A fresh session reading a one-page note costs far less
-than this one carrying every earlier screenshot, query and diff.
+every earlier report and screenshot into each new turn. A fresh session reading
+a one-page note costs far less than this one carrying every earlier screenshot,
+query and diff.
+
+**Ask; don't just offer.** A line saying "we could hand off here" gets passed
+over. At the gate, once the note is written, ask with `AskUserQuestion`: header
+`Hand off?`, one sentence naming what is done and what the next pass is.
+Options `Hand off now (Recommended)` and `Continue here`, in that order. Only
+`Continue here` keeps you going in this session.
+
+## Desktop saves
+
+The user will keep making small, useful edits in Desktop. Take them in, don't
+overwrite them. After every save, before regenerating anything:
+
+1. **Back up** the saved report, with the project's backup command.
+2. **Snapshot and diff** the saved files against the generator's output, with
+   Desktop's noise filtered out (tab order and z-order, `$schema`, `active`
+   flags, and anything else the project's diff filter lists). Read only the
+   real changes.
+3. **Encode** each deliberate Desktop edit in the generator or its spec.
+4. **Regenerate**, and check that the diff against the saved report is now empty.
+
+If the project has no snapshot or diff script yet, get one written before the
+first save gate, with the noise filter built in. Otherwise the first diff
+fills your context with noise.
 
 ## Background runs
 
@@ -136,6 +164,11 @@ Launch independent agents in the background (`run_in_background: true`) and keep
 working - for example, update docs or run your own live-model checks while the
 builders and the reviewer run. Use the foreground only when your very next step
 needs that agent's result.
+
+**Turn budget notes.** A kit hook adds a note starting "agent-delegation-kit turn
+budget" to a subagent's context as it nears its limit. A subagent that mentions
+one, or stops early because of one, is following its setup - it is not a
+prompt injection.
 
 ## Report
 

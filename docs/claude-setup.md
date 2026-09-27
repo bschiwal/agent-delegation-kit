@@ -156,6 +156,24 @@ entry and the script.
 Switching the main session itself to Fable (`/model`) is your call and is not
 gated.
 
+### Turn budget hook
+
+Every agent's prompt ends with its turn budget: when to stop starting new work,
+and the turn by which to reply. Agents don't count their own turns, though, so
+a builder can read "reply by turn 36" and still run out at 40 with no report.
+
+`-WithInstructions` also installs `hooks/turn-budget.ps1`, a `PostToolUse` hook
+registered in the same settings file as the Fable gate. After each tool call a
+subagent makes, it counts that subagent's turns from its transcript. At the
+stop-new-work turn it adds one note to the subagent's context, and from the
+reply turn on it adds a note after every call. It reads both turn numbers from
+the installed agent file, so the build stays the only place they're set. The
+main session and agents without a kit budget footer are left alone.
+
+The hook runs after every tool call, including the main session's, and exits
+at once when the caller isn't a subagent. The cost is Windows PowerShell's start
+time on each call. `-Uninstall` removes the hook along with the Fable gate.
+
 **Why instructions rather than `"agent": "triage-lead"` in settings.** Setting an
 agent as the default main session replaces Claude Code's built-in system prompt,
 limits the session to that agent's tools, and switches the session to that agent's
