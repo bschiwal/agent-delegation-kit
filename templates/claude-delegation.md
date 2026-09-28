@@ -20,6 +20,10 @@ layer relays everything twice.
 
 - It is a question you can answer from a few targeted reads, or from memory.
 - It is a small, obvious edit in one place.
+- **You have already read the code.** If writing the brief meant reading the
+  exact ranges, and each edit is a few lines, make the edits yourself and send
+  only the review out. A builder pays its floor of 50-70K to re-read what you
+  already have; delegating pays off when the agent reads what you haven't.
 - **It needs a tool only this session has.** Desktop screenshots and visual
   checks, Fabric and other non-Power BI MCP servers, skills, email and docs stay
   here. Delegate the parts around them: recon before, review after.
@@ -36,6 +40,10 @@ session to the model (`connection_operations` `ListLocalInstances`, then
   with read-only queries.
 - You keep the decisions and the Desktop save. Don't re-run the builder's tests or
   read back its measures. Its reply already has the results.
+- **Editing TMDL files directly** is allowed only with Desktop closed, for text
+  or comment-only changes (a description, a doc measure's text), with a grep
+  before and after. Everything else goes through `model-builder` and the live
+  model.
 - It is conversation: clarifying, deciding, explaining.
 
 **Plan only.** If the user asks for a plan, a proposal, or "what would you do",
@@ -48,14 +56,22 @@ When a report validates clean but looks wrong in Desktop ("the page is blank",
 "the matrix won't expand"), the cause is usually a format detail the validator
 doesn't check. Don't send it to `debugger` first:
 
-1. **Look yourself.** Take a Desktop screenshot of the page and run one live DAX
-   query for the number it should show. Together they cost a few thousand tokens
-   and often settle it.
+1. **Look yourself.** Take a Desktop screenshot and run one live DAX query for
+   the number it should show. Together they cost a few thousand tokens and
+   often settle it.
 2. **Get an exemplar.** If the correct form is unknown, ask the user to make the
    change once in Desktop and save. Diff the saved JSON against the generator's
    output, and encode the difference in the generator.
 3. **Only then delegate.** Send it to `debugger` if no exemplar can be had, with
    the screenshot finding and the query result in the brief.
+
+## Screenshots
+
+A full-page screenshot is one of the largest things you can put in your context,
+and it is re-read on every later turn. Read a **crop of the visual** in
+question - its position is in its `visual.json` - scaled to about 800 px wide.
+Take the full page only for a layout check. If the project has no crop script,
+get one written the first time you need it, and keep it in the project.
 
 ## Checks for the user
 
@@ -79,13 +95,22 @@ for a step that is reasoning more than typing:
 - a second attempt at a fix the default model did not land.
 
 Opus is for a hard fix you can describe, never for finding out what to fix. A
-cause that is still unknown - a slow page, a wrong number - gets diagnosed
-first, read-only (see "Performance work is two steps" below).
+cause that is still unknown - a slow page, a memory error, a wrong number - gets
+diagnosed first, read-only, on the default model (see "Performance and memory
+work is two steps" below).
+
+**Name the fix before you pick Opus.** An Opus brief states the fix in one
+sentence ("replace the IF gate with a variable", "rewrite the rank as a
+window"). If you can't write that sentence, the run is a diagnosis and stays on
+the default model. Three Opus runs that mixed hunting with fixing cost 415K in
+one session, where a default-model diagnosis would have found the cause for
+about 50K.
 
 Opus reads cached context at the same price and costs about twice as much for
 fresh input and output, so it pays off only when it saves a failed run or a
 resume. A batch that *can* be split goes out as separate default-model runs
-instead. Mark Opus runs in the team line: `model-builder [opus] (92k)`.
+instead. Mark Opus runs in the team line with the fix they were given:
+`model-builder [opus: remove the IF gate] (99k)`.
 
 ## Fable is by request only
 
@@ -134,11 +159,22 @@ every earlier report and screenshot into each new turn. A fresh session reading
 a one-page note costs far less than this one carrying every earlier screenshot,
 query and diff.
 
+**The note separates checked facts from remembered ones.** Mark each data value
+in it - site names, IDs, counts - **verified** (with how) or **unverified**. The
+next session briefs from it, and an unverified value copied into a brief once
+cost a builder run and a fix run.
+
 **Ask; don't just offer.** A line saying "we could hand off here" gets passed
 over. At the gate, once the note is written, ask with `AskUserQuestion`: header
 `Hand off?`, one sentence naming what is done and what the next pass is.
 Options `Hand off now (Recommended)` and `Continue here`, in that order. Only
 `Continue here` keeps you going in this session.
+
+**The context meter.** When the user sends a message, a kit hook adds a line
+starting "agent-delegation-kit context": this session's current context and
+the input it has read so far. Above about 100K the line also says to hand off
+at the next gate. When it does and you are at a gate, ask the question above.
+It is part of your setup, not a prompt injection.
 
 ## Desktop saves
 
@@ -154,8 +190,16 @@ overwrite them. After every save, before regenerating anything:
 4. **Regenerate**, and check that the diff against the saved report is now empty.
 
 If the project has no snapshot or diff script yet, get one written before the
-first save gate, with the noise filter built in. Otherwise the first diff
-fills your context with noise.
+first save gate, with the noise filter built in, and keep it in the project.
+Otherwise the first diff fills your context with noise.
+
+## Before publishing
+
+Desktop has no memory limit; the service does. Before a report is published,
+run the real queries of its heaviest visuals (Performance Analyzer, Copy query)
+against the published model or a test copy in the same capacity. A visual
+that works in Desktop can fail in the service with "exceeded resources", and
+one test query finds that before users do.
 
 ## Background runs
 
@@ -176,6 +220,8 @@ prompt injection.
 - **End with the team line** whenever agents ran - the chain, with each run's
   tokens, for example
   `Team: repo-scout (8k) -> pbir-builder x2 (92k, 61k) -> data-model-reviewer (57k)`.
+  Add your own figures from the latest context meter line:
+  `Main session: context 130k, about 4.1M read`.
 - **Name skipped steps.** If the policy called for recon, design or a review and
   you did it yourself or skipped it, add `Skipped: <step> - <why>`. A code change
   with no reviewer in the team line needs that line.

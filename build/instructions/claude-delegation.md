@@ -20,6 +20,10 @@ layer relays everything twice.
 
 - It is a question you can answer from a few targeted reads, or from memory.
 - It is a small, obvious edit in one place.
+- **You have already read the code.** If writing the brief meant reading the
+  exact ranges, and each edit is a few lines, make the edits yourself and send
+  only the review out. A builder pays its floor of 50-70K to re-read what you
+  already have; delegating pays off when the agent reads what you haven't.
 - **It needs a tool only this session has.** Desktop screenshots and visual
   checks, Fabric and other non-Power BI MCP servers, skills, email and docs stay
   here. Delegate the parts around them: recon before, review after.
@@ -36,6 +40,10 @@ session to the model (`connection_operations` `ListLocalInstances`, then
   with read-only queries.
 - You keep the decisions and the Desktop save. Don't re-run the builder's tests or
   read back its measures. Its reply already has the results.
+- **Editing TMDL files directly** is allowed only with Desktop closed, for text
+  or comment-only changes (a description, a doc measure's text), with a grep
+  before and after. Everything else goes through `model-builder` and the live
+  model.
 - It is conversation: clarifying, deciding, explaining.
 
 **Plan only.** If the user asks for a plan, a proposal, or "what would you do",
@@ -48,14 +56,22 @@ When a report validates clean but looks wrong in Desktop ("the page is blank",
 "the matrix won't expand"), the cause is usually a format detail the validator
 doesn't check. Don't send it to `debugger` first:
 
-1. **Look yourself.** Take a Desktop screenshot of the page and run one live DAX
-   query for the number it should show. Together they cost a few thousand tokens
-   and often settle it.
+1. **Look yourself.** Take a Desktop screenshot and run one live DAX query for
+   the number it should show. Together they cost a few thousand tokens and
+   often settle it.
 2. **Get an exemplar.** If the correct form is unknown, ask the user to make the
    change once in Desktop and save. Diff the saved JSON against the generator's
    output, and encode the difference in the generator.
 3. **Only then delegate.** Send it to `debugger` if no exemplar can be had, with
    the screenshot finding and the query result in the brief.
+
+## Screenshots
+
+A full-page screenshot is one of the largest things you can put in your context,
+and it is re-read on every later turn. Read a **crop of the visual** in
+question - its position is in its `visual.json` - scaled to about 800 px wide.
+Take the full page only for a layout check. If the project has no crop script,
+get one written the first time you need it, and keep it in the project.
 
 ## Checks for the user
 
@@ -79,13 +95,22 @@ for a step that is reasoning more than typing:
 - a second attempt at a fix the default model did not land.
 
 Opus is for a hard fix you can describe, never for finding out what to fix. A
-cause that is still unknown - a slow page, a wrong number - gets diagnosed
-first, read-only (see "Performance work is two steps" below).
+cause that is still unknown - a slow page, a memory error, a wrong number - gets
+diagnosed first, read-only, on the default model (see "Performance and memory
+work is two steps" below).
+
+**Name the fix before you pick Opus.** An Opus brief states the fix in one
+sentence ("replace the IF gate with a variable", "rewrite the rank as a
+window"). If you can't write that sentence, the run is a diagnosis and stays on
+the default model. Three Opus runs that mixed hunting with fixing cost 415K in
+one session, where a default-model diagnosis would have found the cause for
+about 50K.
 
 Opus reads cached context at the same price and costs about twice as much for
 fresh input and output, so it pays off only when it saves a failed run or a
 resume. A batch that *can* be split goes out as separate default-model runs
-instead. Mark Opus runs in the team line: `model-builder [opus] (92k)`.
+instead. Mark Opus runs in the team line with the fix they were given:
+`model-builder [opus: remove the IF gate] (99k)`.
 
 ## Fable is by request only
 
@@ -176,6 +201,10 @@ every one of your remaining turns.
 - **Shape queries to return little.** For tools only you can run (live model
   queries, MCP), ask for the answer rather than the data - aggregates, counts,
   `TOPN`, one row per question - not a 100-row dump to inspect.
+- **Scripts worth running twice live in the project.** A save diff, an
+  inventory or a filter you write goes in the project's tools folder, with its
+  command in the project README - never in `%TEMP%`, where the next session
+  writes it again.
 - **Never read back what you just wrote.** If you wrote a measure, file or payload,
   you already have it. Re-reading it only doubles the cost.
 - **One source of truth for code you author.** Write it once, to disk. Deploy from
@@ -187,6 +216,13 @@ every one of your remaining turns.
   same shape, one measure group, one module - whatever fits comfortably inside
   its turn budget. Several parallel runs cost less than one long run, because each
   call re-reads a smaller context and nothing hits the limit.
+- **Every run has a floor of about 50-70K tokens** - its prompt, tool definitions
+  and first reads - however small the work. A one-paragraph change still costs
+  that. So small work is either batched or done by you (below), never sent out
+  one tiny run at a time.
+- **Batch trivial edits.** Edits that are fully specified - exact before and
+  after, no reading or reasoning, about three tool calls each - go into one run,
+  even across a few objects. Splitting them only multiplies the floor.
 - **Many similar files means a script.** The brief says "write and run a script
   that generates or patches these from the spec", not "write these files".
   Generated or script-patched output is never hand-edited afterwards: change the
@@ -206,12 +242,16 @@ every one of your remaining turns.
 - **A new shared helper is its own step.** A helper other pages or modules will
   use gets built, and reviewed, in a run before the pages that use it. A run
   asked to build a helper plus several visuals is two runs' work, and is the
-  one that overruns.
-- **Split fix batches.** After a review, send unrelated fixes as separate runs,
-  one fix or one group touching the same objects per run. A cheap builder given
-  seven loosely related fixes can spend its whole budget reading and apply none;
-  given one, it usually lands it. Fixes that interact and can't be separated
-  are reasoning work - say so, and treat the batch as a hard step.
+  one that overruns. The exception: a small helper (about 50 lines) with an
+  exact example to copy may be built with its first use, or by you. Either way
+  it is reviewed before any other page copies it.
+- **Split fix batches that need thought.** After a review, send unrelated fixes
+  that each need reading or reasoning as separate runs, one fix or one group
+  touching the same objects per run. A cheap builder given seven loosely
+  related fixes can spend its whole budget reading and apply none; given one,
+  it usually lands it. Fixes that interact and can't be separated are reasoning
+  work - say so, and treat the batch as a hard step. Trivial, fully specified
+  fixes are batched instead (above).
 - **Resume when it's nearly done; otherwise start fresh.** A run that stopped
   close to finishing, on a context that is still modest (under about 120K
   tokens), is cheapest to resume. A run that stopped far from done, or whose
@@ -239,7 +279,11 @@ finishes:
    what already uses it, and what the change does to each. If the plan doesn't
    list it, get it (`repo-scout` can grep for consumers) before the step runs.
    A report-level filter change that "adds an empty column" can break every
-   existing page that uses it.
+   existing page that uses it. **Deleting or replacing** a visual, page or
+   measure is a shared change too: list everything that references its ID -
+   visual interactions, bookmarks, buttons, drill-through targets - and put the
+   list in the brief's **Where**. A dangling reference found late is how a run
+   ends one fix short.
 4. **Build and review overlap.** Review each piece the moment it is settled. If the
    model changes are finished and verified, send them to `data-model-reviewer`
    while the report builders run - they touch different files. Code review of a
@@ -247,7 +291,9 @@ finishes:
 5. **Fix** - confirmed findings go back to the builder, or you fix them. Then send
    **only the changed parts** back for a second review round. Stop after two
    rounds and report what is still open. A fix round that isn't re-reviewed
-   goes in your report as a skipped step.
+   goes in your report as a skipped step. When the user has already approved a
+   fix, one run can prove it and then deploy it, as two phases in the same
+   brief: deploy only if the proof passes. That saves a whole run's floor.
 6. **Review a generator before it is copied.** When the next steps will build
    more generators or pages on the pattern of one already built - especially
    one that has been patched by hand - send it to `code-reviewer` first. A bug
@@ -255,14 +301,22 @@ finishes:
 
 Keep dependent steps sequential. Run everything else in parallel.
 
-**Performance work is two steps: diagnose, then fix.** Diagnosis is read-only
-and cheap: time the query the visual actually sends (the user can copy it from
-Performance Analyzer), then time its measures one at a time. Never time a query
-rebuilt by hand - it is not the one that is slow. Do that yourself with a few
-live queries, or send it to a builder with "diagnose only, change nothing".
-Start a fix run only when the diagnosis names one lever, and brief it with that
-lever. A run that both hunts for the cause and tries fixes spends its budget on
-the hunt.
+**Performance and memory work is two steps: diagnose, then fix.** This covers a
+slow visual, a memory error and an "exceeded resources" failure alike.
+
+- **Get the real query first.** Before briefing anything, ask the user for the
+  visual's query (Performance Analyzer, Copy query). Never time or test a query
+  rebuilt by hand - it is not the one that fails. A rebuilt query once ran fine
+  at 632 MB while the real one failed, and the run spent 139K on the wrong
+  question.
+- **Diagnose read-only, on the default model.** Run the real query, then each
+  of its measures alone, and find the one that drives the cost. Do it yourself
+  with a few live queries, or send it to a builder with "diagnose only, change
+  nothing". One visual per diagnosis run, or a group of visuals that share a
+  measure tree - never a page's worth in one run.
+- **Fix only a named lever.** Start a fix run once the diagnosis names what to
+  change, and brief it with that. A run that both hunts for the cause and tries
+  fixes spends its budget on the hunt.
 
 **Parallel builders never run shared global steps.** Scripts that act on the whole
 project - a `run_all` that also prunes, codegen, migrations - and shared
@@ -290,6 +344,18 @@ reliably costs more later.
   you can run.
 - `security-reviewer` for credentials, user input, file paths or network calls.
 
+Two cases need no reviewer, and each still goes in the Skipped line with its
+reason:
+
+- **A rewrite proven equal** to the measure it replaces, by a query over the
+  whole grid its visuals use (every goal, store and year, say) that returns zero
+  differences. Name the proof. A new measure, or a rewrite that changes any
+  number on purpose, is still reviewed.
+- **Position and size changes only**, checked on a screenshot.
+
+A finding a reviewer marks **plausible, needs rendering to confirm** is not
+dropped: it becomes a Desktop check for the user, with its expected result.
+
 Name the exact files or diff range in the brief. Generated output that passed a
 clean validation is not worth a reviewer's turns - send the generator and its
 spec instead. **But if validation was not clean on those files, or skipped a check
@@ -303,6 +369,17 @@ Each delegation gets a self-contained brief. The agent sees only what you send:
 - **Goal** - one or two sentences.
 - **Where** - exact `file:line` locations. Never make an agent rediscover what
   recon already found.
+- **Checked facts only.** Every name, ID, count and target in a brief comes from
+  a check you made this session - a grep, a query - not from a plan or resume
+  note. A wrong site name, a page count off by two and a "recolour" target that
+  had no such colour all went into briefs that way, and each cost a run. A fact
+  you could not check is marked **unverified**, and the brief says to check it
+  with one query before editing.
+- **Decisions made first.** Anything the user will judge - names (output folder,
+  report, display name), a page's layout - is settled before the run starts.
+  For layout, show the user sketches and put every visual's position in the
+  brief. A builder left to "re-fit the rest of the page" builds a layout the
+  user then rejects.
 - **Constraints** - conventions, what not to touch, runtime (for example Node),
   how to verify.
 - **Facts about the environment** - stated, not left to the agent: whether the
@@ -311,6 +388,9 @@ Each delegation gets a self-contained brief. The agent sees only what you send:
   arguments differently, and a guessed backup folder is a missing backup.
 - **Step name** - for the builder's progress and details file,
   `.claude/runs/<step>.md`.
+- **Who else is running** - other builders working at the same time, and on
+  which pages or objects, so a builder reading a report-wide check knows which
+  failures are not its own.
 - **Known and accepted issues** - things already documented, deliberate, or
   deferred, so a reviewer doesn't re-report them and a builder doesn't "fix" them.
   Write "none" if there are none. Leaving this out is what makes reviewers
@@ -344,11 +424,22 @@ every earlier report and screenshot into each new turn. A fresh session reading
 a one-page note costs far less than this one carrying every earlier screenshot,
 query and diff.
 
+**The note separates checked facts from remembered ones.** Mark each data value
+in it - site names, IDs, counts - **verified** (with how) or **unverified**. The
+next session briefs from it, and an unverified value copied into a brief once
+cost a builder run and a fix run.
+
 **Ask; don't just offer.** A line saying "we could hand off here" gets passed
 over. At the gate, once the note is written, ask with `AskUserQuestion`: header
 `Hand off?`, one sentence naming what is done and what the next pass is.
 Options `Hand off now (Recommended)` and `Continue here`, in that order. Only
 `Continue here` keeps you going in this session.
+
+**The context meter.** When the user sends a message, a kit hook adds a line
+starting "agent-delegation-kit context": this session's current context and
+the input it has read so far. Above about 100K the line also says to hand off
+at the next gate. When it does and you are at a gate, ask the question above.
+It is part of your setup, not a prompt injection.
 
 ## Desktop saves
 
@@ -364,8 +455,16 @@ overwrite them. After every save, before regenerating anything:
 4. **Regenerate**, and check that the diff against the saved report is now empty.
 
 If the project has no snapshot or diff script yet, get one written before the
-first save gate, with the noise filter built in. Otherwise the first diff
-fills your context with noise.
+first save gate, with the noise filter built in, and keep it in the project.
+Otherwise the first diff fills your context with noise.
+
+## Before publishing
+
+Desktop has no memory limit; the service does. Before a report is published,
+run the real queries of its heaviest visuals (Performance Analyzer, Copy query)
+against the published model or a test copy in the same capacity. A visual
+that works in Desktop can fail in the service with "exceeded resources", and
+one test query finds that before users do.
 
 ## Background runs
 
@@ -386,6 +485,8 @@ prompt injection.
 - **End with the team line** whenever agents ran - the chain, with each run's
   tokens, for example
   `Team: repo-scout (8k) -> pbir-builder x2 (92k, 61k) -> data-model-reviewer (57k)`.
+  Add your own figures from the latest context meter line:
+  `Main session: context 130k, about 4.1M read`.
 - **Name skipped steps.** If the policy called for recon, design or a review and
   you did it yourself or skipped it, add `Skipped: <step> - <why>`. A code change
   with no reviewer in the team line needs that line.

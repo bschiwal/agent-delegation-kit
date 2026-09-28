@@ -23,13 +23,56 @@ how it got there, and what would justify reopening it.
 | Progress file | Builders append to `.claude/runs/<step>.md` after each milestone. Replies are about 25 lines, details go in the file | Added 2026-09-26 (G3 AAR P1, P6). Reviewers were deliberately left out, because their findings *are* the payload. | - |
 | Recon | Where-is and how-does questions go to `repo-scout`. Complete inventories (every page, literal, ID) are a script the orchestrator runs | 2026-09-18: the orchestrator read four large files itself, so recon moved out. 2026-09-27: two scout inventories cost 115k, overran and missed instances, so inventories went to scripts. This narrowed the 09-18 rule; it did not reverse it. | A scout is again asked for a complete list, or an orchestrator reads files itself for a where-is question. |
 | Large output | Through `log-triager` or a filter script, never read raw. One validation summary script per project, written before builders start | Filter rule 2026-09-18. Per-project script 2026-09-26: parallel builders each wrote their own filter and disagreed on counts. The kit ships the rule, not the script (the project owns it). | The kit needs a language or runtime dependency anyway. |
-| Opus on builders | Default `implement` model. The main session may pass `model: "opus"` for a hard step, a batch that can't be split, or a second attempt. Never for finding out what to fix | 2026-09-25: the default model landed none of a 7-fix batch but landed single fixes. 2026-09-27: an Opus run that bundled diagnosis and fix cost 146k with no fix. | - |
+| Opus on builders | Default `implement` model. The main session may pass `model: "opus"` for a hard step, a batch that can't be split, or a second attempt. Never for finding out what to fix: an Opus brief states the fix in one sentence, and the team line shows it | 2026-09-25: the default model landed none of a 7-fix batch but landed single fixes. 2026-09-27: an Opus run that bundled diagnosis and fix cost 146k with no fix. 2026-09-28: the rule was broken again (three Opus diagnosis runs, 415k), so the brief now has to name the fix. | Opus runs still go out as diagnoses with a named fix in the brief. Then it needs a hook on the Agent call. |
+| Run sizing | Size by budget. Every run has a floor of about 50-70k, so trivial, fully specified edits are batched into one run, and edits in ranges the orchestrator has already read are made by the orchestrator. Fixes that need reading or reasoning are still split | Split rule 2026-09-25 (a 7-fix batch landed nothing). Floor and batching 2026-09-28: five trivial edits split across three runs cost about 130k extra. This narrowed the split rule to fixes that need thought; it did not reverse it. | A batch of *trivial* edits fails the way the 09-25 batch did. |
+| Shared helpers | Built and reviewed in their own run before pages use them. A helper of about 50 lines with an exact example may go with its first use, or be written by the orchestrator, but is reviewed before anything copies it | Own step 2026-09-27 (a helper plus four visuals overran). Small-helper exception 2026-09-28. The part that matters - reviewed before copied - did not change. | A small helper built with its first use ships a bug into a copy. |
+| Review coverage | Every non-trivial change is reviewed. Two exceptions, each named in the Skipped line: a rewrite proven equal to what it replaces over the whole grid, and position-or-size-only changes checked on a screenshot | "Review everything" since 2026-09-17. The exceptions were made case by case in two sessions, and were written down 2026-09-28. | A skipped review lets a wrong number through. |
+| Schema-unreachable validation | With the PBIR schema unreachable, `pbir-builder` reports **validation incomplete**, whatever the project's summary script does with the error | 2026-09-25: three structural errors passed an unreachable-schema validation and failed in Desktop. 2026-09-28: two sessions asked for the recurring error to stop failing `validate.py`. That is fine in the project's script (report it on its own line), but it must not turn "incomplete" into "passed". | - |
 | Fable | Only on a grant in the request or a Yes to one question. Enforced by `hooks/fable-gate.ps1` | 2026-09-22. | - |
-| Session length | One session per build pass. A checked Desktop save gate counts as a gate, and at the gate the orchestrator *asks* (`Hand off?`) rather than offering | Rule 2026-09-25, sharpened 2026-09-26. It was ignored both times, so 2026-09-27 changed how it applies (a question the user answers), not what it says. | The question gets asked and sessions still run long. Then it needs a hook, not more wording. |
+| Session length | One session per build pass. A checked Desktop save gate counts as a gate, and at the gate the orchestrator *asks* (`Hand off?`) rather than offering. `hooks/context-meter.ps1` tells the main session its context size on every user message, and to hand off above about 100k | Rule 2026-09-25, sharpened 2026-09-26, made a question 2026-09-27. The question was still skipped (a session ran through about five save gates), so 2026-09-28 added the hook, as this row said it would. | Sessions still run past 150k with the meter's advice in their transcript. Then the thresholds or the note's wording need a look. |
 | Default orchestrator in Claude Code | The main session, via the installed `claude-delegation.md` policy. Not `triage-lead` | 2026-09-18: `"agent": "triage-lead"` replaces the system prompt and drops MCP, skills and Opus. | Claude Code lets an agent-default session keep MCP and skills. |
 | Copilot and MCP | Copilot agents get MCP tools through `registry/mcp.json` | 2026-09-18: `model-builder` was made Claude-only on the assumption Copilot couldn't use MCP. That was wrong, and was reversed the same day. | - |
 | Plan-only mode | A mode of both orchestrators. There is no separate router agent | 2026-09-18: `delegation-router` was removed because it duplicated `architect`. | - |
 | Test and replica queries | `TREATAS` or `SUMMARIZECOLUMNS`, never `CROSSJOIN` grids. Replicas use different mechanics from the measure under test | `CROSSJOIN` rule 2026-09-25; replica rule 2026-09-26. | - |
+
+## 2026-09-28 - Five session reviews
+source: [`docs/feedback/2026-09-28-sr2-five-session-reviews.md`](docs/feedback/2026-09-28-sr2-five-session-reviews.md)
+
+Across five sessions, the routing, tiers and review gates held, and almost every
+run finished first time. The waste was in over-delegating small work, in brief
+facts nobody checked, and in two rules the orchestrator skipped again (Opus for
+diagnosis, hand-off at a gate).
+
+- **Context meter hook** (`hooks/context-meter.ps1`, `UserPromptSubmit`,
+  installed with `-WithInstructions`). On each user message it adds the main
+  session's context size and total input read, from the transcript's usage
+  figures, and hand-off advice above 100k and 150k. Tested in Claude Code
+  2.1.283 against this repo's own session transcript and a live session. The
+  session also gets real figures for its team line, which every report said it
+  lacked.
+- **Run sizing:** a stated floor of 50-70k per run; trivial, fully specified
+  edits batched into one run; edits in ranges already read done by the
+  orchestrator; "split fix batches" narrowed to fixes that need thought.
+- **Small helper exception** to "a new shared helper is its own step".
+- **Checked facts only in briefs**, and verified/unverified marks on data values
+  in resume notes. Names and layout settled with the user before a run. Briefs
+  say who else is running.
+- **Deleted or replaced IDs** are a shared change: recon lists every reference.
+  `pbir-builder`'s self-check fails on a dangling one.
+- **Performance and memory:** get the real query from Performance Analyzer
+  first; diagnose one visual (or one measure tree) per run on the default model;
+  an Opus brief must name its fix. A pre-publish check runs the heaviest
+  visuals' real queries against the service's memory limit.
+- **Review:** proven-equal rewrites and position-only changes may skip review,
+  named in the Skipped line. "Plausible, needs rendering" findings become Desktop
+  checks. An approved fix may be proved and deployed in one run.
+- **Smaller:** screenshots are crops of the visual; reusable scripts live in the
+  project; direct TMDL edits only with Desktop closed and text-only;
+  `model-builder` checks its export paths and points the reviewer at the
+  project's own TMDL for the old version.
+- **Project fixes, not kit:** the `sr2_common` helper merge trap, `validate.py`
+  exit codes and schema noise, the `backup_report.py` naming, the tableEx
+  image-fit rule, and keeping the save-diff script.
 
 ## 2026-09-27 - SR2 post-G3 AAR
 source: [`docs/feedback/2026-09-27-sr2-post-g3-aar.md`](docs/feedback/2026-09-27-sr2-post-g3-aar.md)

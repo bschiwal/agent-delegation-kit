@@ -116,6 +116,10 @@ can't reach the schema, and each has cost a round trip through Desktop:
   didn't ask for: one `active` projection made Desktop show only that column.
 - **A flat matrix is two settings.** Tabular layout takes both
   `general.layout` set to `'Tabular'` and `rowHeaders.stepped` set to `false`.
+- **No dangling references.** When the run deletes or replaces a visual or a
+  page, no file still names its ID: `visualInteractions` in `page.json`,
+  bookmarks, buttons, drill-through targets. Grep the report for every removed
+  ID. A stale interaction entry left behind once took a run's last turns.
 
 Add a check for any other structural mistake you find and fix in a run, so the
 next run catches it. The check reads what the script wrote, not your spec: the

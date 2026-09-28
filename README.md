@@ -74,6 +74,8 @@ exists and the kit did not create it, the install skips it and tells you; add
 | Fable gate hook (`-WithInstructions`) | project | `<repo>\.claude\hooks\fable-gate.ps1`, registered in `<repo>\.claude\settings.local.json` |
 | Turn budget hook (`-WithInstructions`) | user | `~\.claude\hooks\turn-budget.ps1`, registered in `~\.claude\settings.json` |
 | Turn budget hook (`-WithInstructions`) | project | `<repo>\.claude\hooks\turn-budget.ps1`, registered in `<repo>\.claude\settings.local.json` |
+| Context meter hook (`-WithInstructions`) | user | `~\.claude\hooks\context-meter.ps1`, registered in `~\.claude\settings.json` |
+| Context meter hook (`-WithInstructions`) | project | `<repo>\.claude\hooks\context-meter.ps1`, registered in `<repo>\.claude\settings.local.json` |
 
 VS Code also reads `.claude/agents`, so a project-scope install gives Copilot two
 copies of each agent. Use `-Target copilot -Scope project` if you only want one.
@@ -412,6 +414,7 @@ templates/
 hooks/
   fable-gate.ps1      PreToolUse hook: Fable only by grant or a Yes answer
   turn-budget.ps1     PostToolUse hook: tells a subagent its turn count near the limit
+  context-meter.ps1   UserPromptSubmit hook: tells the main session its context size
 scripts/
   build.ps1           registry -> build/
   install.ps1         build/ -> Claude Code and Copilot

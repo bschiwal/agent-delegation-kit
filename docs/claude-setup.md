@@ -174,6 +174,17 @@ The hook runs after every tool call, including the main session's, and exits
 at once when the caller isn't a subagent. The cost is Windows PowerShell's start
 time on each call. `-Uninstall` removes the hook along with the Fable gate.
 
+### Context meter hook
+
+The main session is the most expensive context in a build, and it can't see its
+own size. `-WithInstructions` also installs `hooks/context-meter.ps1`, a
+`UserPromptSubmit` hook. Each time you send a message, it reads the session
+transcript and adds one line to the session's context: the current context size
+and the total input read so far. The session uses those figures in its team
+line. Above about 100K the line also tells it to write the resume note and ask
+**Hand off?** at the next gate, and above about 150K it says so more firmly.
+The thresholds are at the top of the script.
+
 **Why instructions rather than `"agent": "triage-lead"` in settings.** Setting an
 agent as the default main session replaces Claude Code's built-in system prompt,
 limits the session to that agent's tools, and switches the session to that agent's
