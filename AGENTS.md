@@ -24,6 +24,7 @@ warns.
 | Change how work is routed to agents (both orchestrators) | `templates/partials/delegation-core.md` |
 | Change the main-session policy wrapper | `templates/claude-delegation.md` |
 | Change when a subagent may run on Fable | `templates/claude-delegation.md` (the rule) and `hooks/fable-gate.ps1` (the enforcement) - keep them in step |
+| Change when the main session is told to hand off | `$WarnAt` and `$StrongAt` at the top of `hooks/context-meter.ps1`, and the "One session per build pass" section of `templates/claude-delegation.md` |
 | Change the turn budget deadlines | `Get-BudgetFooter` in `scripts/build.ps1`. `hooks/turn-budget.ps1` reads the numbers from the footer's wording, so reword the footer only together with the hook's regexes |
 | Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |

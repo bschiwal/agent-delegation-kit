@@ -148,9 +148,11 @@ if ($claudeTarget) {
 }
 
 # Every hook the kit installs: which event, which tools, and the script in hooks/.
+# A $null matcher is for events that take none (UserPromptSubmit).
 $kitHooks = @(
     [pscustomobject]@{ Name = 'Fable gate';  Script = 'fable-gate.ps1';  Event = 'PreToolUse';  Matcher = 'Agent|Task'; Timeout = 15 },
-    [pscustomobject]@{ Name = 'Turn budget'; Script = 'turn-budget.ps1'; Event = 'PostToolUse'; Matcher = '*';          Timeout = 15 }
+    [pscustomobject]@{ Name = 'Turn budget'; Script = 'turn-budget.ps1'; Event = 'PostToolUse'; Matcher = '*';          Timeout = 15 },
+    [pscustomobject]@{ Name = 'Context meter'; Script = 'context-meter.ps1'; Event = 'UserPromptSubmit'; Matcher = $null; Timeout = 15 }
 )
 
 function Test-OrchestratorAgent {
@@ -205,10 +207,10 @@ function Set-KitHook {
     if (-not $Remove -and $alreadyCurrent) { return 'already registered' }
 
     if (-not $Remove) {
-        $kept += [pscustomobject][ordered]@{
-            matcher = $Hook.Matcher
-            hooks   = @([pscustomobject][ordered]@{ type = 'command'; command = $command; timeout = $Hook.Timeout })
-        }
+        $entry = [ordered]@{}
+        if ($null -ne $Hook.Matcher) { $entry.matcher = $Hook.Matcher }
+        $entry.hooks = @([pscustomobject][ordered]@{ type = 'command'; command = $command; timeout = $Hook.Timeout })
+        $kept += [pscustomobject]$entry
     }
 
     if ($null -eq $hooks) {

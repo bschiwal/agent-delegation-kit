@@ -124,7 +124,15 @@ After committing, export the model with `database_operations
 ExportToTmdlFolder` to `.claude/review/<task>/model/`. That writes the TMDL straight
 to disk without passing it through your context. In your reply, list the exact
 files under that folder that contain your changes (grep the folder for the object
-names), so `data-model-reviewer` reads only those.
+names), so `data-model-reviewer` reads only those. **Check that each path you
+list exists** - the export nests files a folder deeper than you might expect
+(`model/tables/`, not `model/`), and a wrong path costs the reviewer a search.
+
+**Give the reviewer the old version too.** Until Desktop saves, the project's
+own TMDL (`*.SemanticModel/definition/`) still holds every object as it was
+before your change. For each changed object, list that file next to the new
+one, so the reviewer can diff them. Don't copy the old expressions into a file
+of your own - a copy made by hand drops pieces.
 
 Tell the caller that Desktop still holds the change unsaved. Saving the PBIP in
 Desktop is what updates the project's own definition folder. The export is only
