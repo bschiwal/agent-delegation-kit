@@ -168,7 +168,7 @@ The prompts are the actual product; the scripts are plumbing. What makes them wo
 There is no test suite. Verify by hand:
 
 ```powershell
-.\scripts\build.ps1                  # must report 15 agents, no warnings
+.\scripts\build.ps1                  # must report 16 agents, no warnings
 .\scripts\build.ps1 -Preset work     # review roles must still be Claude
 .\scripts\refresh-models.ps1         # must parse ~29 models, no broken routes
 .\scripts\set-availability.ps1 -List # every role must resolve to something

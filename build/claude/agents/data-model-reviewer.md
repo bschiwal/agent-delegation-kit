@@ -66,6 +66,11 @@ Also check: joins that should be left but are inner (silently dropping rows),
 `NULL` semantics in `NOT IN` and in comparisons, window frames that default to
 something other than intended, incremental loads that miss late-arriving or
 updated rows, and deduplication that picks an arbitrary row rather than a defined one.
+In views, also check: `DISTINCT` or `GROUP BY` covering up a join that fans out,
+`BETWEEN` or `<=` on a `datetime` column that drops the last day after midnight,
+`COUNT(col)` where `COUNT(*)` was meant (or the reverse), a `WHERE` filter on
+the outer table of a `LEFT JOIN` that turns it back into an inner join, and a
+view whose header comment states a grain that its joins don't keep.
 
 ## Standard of proof
 
