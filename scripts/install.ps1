@@ -403,7 +403,10 @@ if ($null -ne $claudeInstr) {
     else {
         $dir = Split-Path $claudeInstr.PolicyFile -Parent
         if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        Write-Utf8NoBom $claudeInstr.PolicyFile ([System.IO.File]::ReadAllText($src))
+        # Session reviews are saved into this clone's gitignored feedback folder,
+        # wherever the clone lives on this machine.
+        $feedbackDir = (Join-Path (Join-Path (Join-Path $repo 'docs') 'feedback') 'local').Replace('\', '/')
+        Write-Utf8NoBom $claudeInstr.PolicyFile ([System.IO.File]::ReadAllText($src).Replace('{{FEEDBACK_DIR}}', $feedbackDir))
 
         $block = "$blockBegin`n$($claudeInstr.Import)`n$blockEnd"
         if (-not (Test-Path $claudeInstr.ClaudeMd)) {

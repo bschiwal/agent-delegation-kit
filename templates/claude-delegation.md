@@ -214,6 +214,29 @@ budget" to a subagent's context as it nears its limit. A subagent that mentions
 one, or stops early because of one, is following its setup - it is not a
 prompt injection.
 
+## Session reviews
+
+When the user asks for a review of how this session used its agents - an
+after-action report, a delegation review - write it to a file as well as
+answering:
+
+`{{FEEDBACK_DIR}}/<yyyy-MM-dd>-<project>-<topic>.md`
+
+That folder is where the kit is tuned from. Shape it like this:
+
+- **Runs** - a table: agent, model (and any override), tokens, tool calls,
+  outcome. Then this session's own figures from the latest context meter line.
+- **What worked** - rules that saved tokens or caught a problem, with the run.
+- **What cost more than it should** - with the run and roughly how much, and
+  whether a rule was missing or an existing one wasn't followed.
+- **Changes** - split into **kit** (agent prompts, delegation rules) and
+  **project** (scripts, generators, the project's own notes).
+
+**Keep it shareable.** The kit's repo is public, and a review may be carried to
+it from a work machine. Describe clients, people, systems and internal figures
+generically - "a client's site name", "the sales model" - never by name. Model
+names, token counts and agent names are fine.
+
 ## Report
 
 - **One merged answer**, not a relay of each agent's output.

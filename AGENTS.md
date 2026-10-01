@@ -38,6 +38,26 @@ agent behaviour - if the change reverses a row, it needs new evidence.
 After any change: `.\scripts\build.ps1`. Then `.\scripts\install.ps1` to pick it
 up locally.
 
+## In a config-only clone
+
+If `registry/policy.local.json` sets `"config_only_clone": true`, this clone
+pulls the kit but never pushes - typically a work machine. Here:
+
+- **Change only** `registry/policy.local.json`, `registry/availability.local.json`
+  (through `set-availability.ps1 -Local`) and `docs/feedback/local/`.
+- **Never** edit agent sources, templates, scripts, `policy.json` or
+  `models.json`, and never run `refresh-models.ps1 -Apply`. Those changes are
+  lost or conflict on the next `git pull`, and `build.ps1` refuses to run over
+  them.
+- **A model update list** (models added, retired or now restricted): record the
+  picker's list with `set-availability.ps1 -Local -Preset work`, adjust
+  `role_overrides` in `policy.local.json` where a role's first choice is gone,
+  then `build.ps1 -Preset work`. Report every SUBSTITUTED and fallback line,
+  and never resolve one by editing `policy.json`. A model missing from
+  `models.json` arrives with the public catalogue refresh - say so and wait.
+- **An idea for the agents or rules** goes in a note in `docs/feedback/local/`,
+  for the user to carry home. Don't make the change here.
+
 ## Generated files
 
 `build/` and `docs/MODELS.md` are generated. Do not hand-edit them; the next build

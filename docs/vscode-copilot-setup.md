@@ -129,18 +129,38 @@ reports `Local overrides applied`, and writes to **`build/local/`**, which is al
 git-ignored. That way a work build can never end up in a commit. `install.ps1`
 picks up the local build automatically.
 
-**These files don't travel with Sync Changes.** Copy them to the work machine
-yourself, through your work OneDrive, email to yourself, or a USB stick, into the
-repo's `registry\` folder. Then run:
+### A clone on the work machine
+
+Keep these files on the machine that uses them. Clone the repo on the work
+machine (no fork needed - it only ever pulls), and create the two files there.
+Set `"config_only_clone": true` in that clone's `policy.local.json`.
+
+That marks the clone as **config-only**: it changes its `*.local.json` files and
+`docs/feedback/local/`, and nothing else. Everything else - agent prompts, the
+model catalogue, the rules - arrives with `git pull`. If a committed file has
+changed there, the build stops and names it, because the next pull would
+overwrite it or refuse to run.
+
+Each update cycle - new models, retired models, a changed policy:
 
 ```powershell
-.\scripts\set-availability.ps1 -Local -List                 # what's recorded
-.\scripts\install.ps1 -Target copilot -Preset work -WithInstructions
+git pull                                                     # latest kit and catalogue
+.\scripts\set-availability.ps1 -Local -Preset work -Mode allow -Models '...', '...'
+# edit role_overrides in registry\policy.local.json if a role's first choice changed
+.\scripts\build.ps1 -Preset work                             # read any SUBSTITUTED / fallback lines
+.\scripts\install.ps1 -Preset work -WithInstructions
 ```
 
-If your organization removes models on a schedule (for example on the 1st of
-each month), re-check the picker afterwards and update the list with
-`set-availability.ps1 -Local -Preset work -Mode allow -Models ...`.
+Or give a Claude session in the clone the update list and let it do the same:
+`AGENTS.md` tells it to touch only the local files there.
+
+New models reach the catalogue through the weekly refresh workflow on the public
+repo, so a model your org adds is in `registry/models.json` after a pull. If one
+isn't yet, wait for the refresh rather than editing `models.json` in the clone.
+
+**Lessons go home as notes.** Session reviews written on the work machine land in
+`docs/feedback/local/` (gitignored). Copy that folder home now and then; see its
+README.
 
 ## Working within an org model policy
 

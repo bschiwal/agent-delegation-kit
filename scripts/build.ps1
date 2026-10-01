@@ -16,6 +16,11 @@
   'work' applies registry/policy.json workplace_overrides.profiles.work, which
   reserves Anthropic models for reasoning and review roles.
 
+.PARAMETER AllowTrackedChanges
+  In a config-only clone (registry/policy.local.json sets "config_only_clone":
+  true), build even though committed files have local changes. Without it the
+  build stops and names them.
+
 .EXAMPLE
   .\scripts\build.ps1
   .\scripts\build.ps1 -Preset work
@@ -23,7 +28,8 @@
 [CmdletBinding()]
 param(
     [ValidateSet('personal', 'work')]
-    [string]$Preset = 'personal'
+    [string]$Preset = 'personal',
+    [switch]$AllowTrackedChanges
 )
 
 $ErrorActionPreference = 'Stop'
@@ -131,6 +137,32 @@ if (Test-Path $localPolicyPath) {
 }
 foreach ($r in $overrides.Keys) {
     if ($null -eq $policy.roles.$r) { throw "Override for unknown role '$r' - roles are defined in registry/policy.json." }
+}
+
+# A config-only clone (a work machine that pulls this repo but never pushes)
+# changes only gitignored *.local.json files. An edit to a committed file there
+# is lost or conflicts on the next git pull, and makes the installed agents
+# differ from the shared ones without anyone noticing. So the build refuses to
+# run over one. The flag lives in policy.local.json, which only that clone has.
+$configOnly = ($null -ne $localPolicy -and $localPolicy.config_only_clone -eq $true)
+if ($configOnly -and -not $AllowTrackedChanges -and $null -ne (Get-Command git -ErrorAction SilentlyContinue)) {
+    $gitOut = @(& git -C $repo status --porcelain 2>$null)
+    if ($LASTEXITCODE -eq 0) {
+        $changed = @($gitOut | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($changed.Count -gt 0) {
+            Write-Host ''
+            Write-Host 'STOPPED - this is a config-only clone, and files outside the *.local.json overrides have changed:' -ForegroundColor Red
+            foreach ($c in $changed) { Write-Host "  $c" -ForegroundColor Red }
+            Write-Host ''
+            Write-Host '  In this clone, change only registry/policy.local.json, registry/availability.local.json' -ForegroundColor Yellow
+            Write-Host '  and docs/feedback/local/. Everything else comes from git pull.' -ForegroundColor Yellow
+            Write-Host '  Undo the changes:   git restore .   (and delete any new files listed with ??)' -ForegroundColor Yellow
+            Write-Host '  Or keep them aside: git stash -u' -ForegroundColor Yellow
+            Write-Host '  A change worth keeping goes home as a note in docs/feedback/local/.' -ForegroundColor Yellow
+            Write-Host '  To build anyway: .\scripts\build.ps1 -Preset work -AllowTrackedChanges' -ForegroundColor DarkGray
+            throw 'Config-only clone has changes to tracked files - see above.'
+        }
+    }
 }
 
 # Where output goes. build/ and docs/MODELS.md are committed, so a build that used
@@ -743,7 +775,12 @@ if ($substitutions.Count -gt 0) {
         Write-Host "    wanted: $($s.Blocked)" -ForegroundColor DarkGray
         Write-Host "    using:  $($s.Chosen) (merit $($s.Merit))" -ForegroundColor Yellow
     }
-    Write-Host '  Fix properly by adding a reachable model to that role in registry/policy.json.' -ForegroundColor DarkGray
+    if ($configOnly) {
+        Write-Host '  Fix properly by adding a reachable model to that role in registry/policy.local.json (role_overrides).' -ForegroundColor DarkGray
+    }
+    else {
+        Write-Host '  Fix properly by adding a reachable model to that role in registry/policy.json.' -ForegroundColor DarkGray
+    }
 }
 
 if ($degraded.Count -gt 0) {

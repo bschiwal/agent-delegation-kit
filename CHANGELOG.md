@@ -30,10 +30,32 @@ how it got there, and what would justify reopening it.
 | Schema-unreachable validation | With the PBIR schema unreachable, `pbir-builder` reports **validation incomplete**, whatever the project's summary script does with the error | 2026-09-25: three structural errors passed an unreachable-schema validation and failed in Desktop. 2026-09-28: two sessions asked for the recurring error to stop failing `validate.py`. That is fine in the project's script (report it on its own line), but it must not turn "incomplete" into "passed". | - |
 | Fable | Only on a grant in the request or a Yes to one question. Enforced by `hooks/fable-gate.ps1` | 2026-09-22. | - |
 | Session length | One session per build pass. A checked Desktop save gate counts as a gate, and at the gate the orchestrator *asks* (`Hand off?`) rather than offering. `hooks/context-meter.ps1` tells the main session its context size on every user message, and to hand off above about 100k | Rule 2026-09-25, sharpened 2026-09-26, made a question 2026-09-27. The question was still skipped (a session ran through about five save gates), so 2026-09-28 added the hook, as this row said it would. | Sessions still run past 150k with the meter's advice in their transcript. Then the thresholds or the note's wording need a look. |
+| Work machine setup | A clone that only pulls, with its own `*.local.json` files, never copied from home. `"config_only_clone": true` makes the build stop if a committed file changed there. Lessons come home as reviews from `docs/feedback/local/` | 2026-10-01. The docs used to say to copy the `.local` files from home to work. New models come from the public catalogue refresh, so there is no local model catalogue (rejected 2026-10-01: work allows fewer models than the public list, not more). | A work model is missing from the public catalogue for longer than a refresh cycle. |
 | Default orchestrator in Claude Code | The main session, via the installed `claude-delegation.md` policy. Not `triage-lead` | 2026-09-18: `"agent": "triage-lead"` replaces the system prompt and drops MCP, skills and Opus. | Claude Code lets an agent-default session keep MCP and skills. |
 | Copilot and MCP | Copilot agents get MCP tools through `registry/mcp.json` | 2026-09-18: `model-builder` was made Claude-only on the assumption Copilot couldn't use MCP. That was wrong, and was reversed the same day. | - |
 | Plan-only mode | A mode of both orchestrators. There is no separate router agent | 2026-09-18: `delegation-router` was removed because it duplicated `architect`. | - |
 | Test and replica queries | `TREATAS` or `SUMMARIZECOLUMNS`, never `CROSSJOIN` grids. Replicas use different mechanics from the measure under test | `CROSSJOIN` rule 2026-09-25; replica rule 2026-09-26. | - |
+
+## 2026-10-01 - Config-only work clone
+
+Run the kit on a work machine without carrying files between machines.
+
+- **`"config_only_clone": true`** in `registry/policy.local.json` marks a clone
+  that only pulls. `build.ps1` then stops if `git status` shows any change
+  outside the gitignored files, names them, and says how to undo them.
+  `-AllowTrackedChanges` builds anyway. In such a clone, the SUBSTITUTED
+  message points at `policy.local.json`, not `policy.json`.
+- **`docs/feedback/local/`** (gitignored except its README) collects session
+  reviews. The installed policy has a "Session reviews" section: when asked for
+  a review, a session also writes it there, in a fixed shape, with clients,
+  people and internal figures kept generic. `install.ps1` fills in the folder's
+  path.
+- `AGENTS.md` has an "In a config-only clone" section: only the local files
+  change, and model update lists are applied through `set-availability -Local`
+  and `role_overrides`. `docs/vscode-copilot-setup.md` no longer says to copy
+  the local files from home.
+- Not done: a local model catalogue. New models come from the public catalogue
+  refresh, and the work list is narrower than the public one.
 
 ## 2026-09-28 - Five session reviews
 source: [`docs/feedback/2026-09-28-sr2-five-session-reviews.md`](docs/feedback/2026-09-28-sr2-five-session-reviews.md)
