@@ -36,12 +36,12 @@ List price per 1M tokens, blended as `0.8 x input + 0.2 x output` (agent turns
 are input-heavy). Real billing can differ from list price - measure yours:
 
 - GPT-6 Luna - **0.18**
-- GPT-5.6 Luna - **0.40**
 - MAI-Code-1.1-Flash - **0.40**
+- GPT-5.6 Luna - **0.40**
 - Gemini 3.7 Flash - **1.35**
 - Claude Haiku 4.5 - **1.80**
-- GPT-6 Sol - **3.60**
 - Claude Sonnet 5 - **3.60**
+- GPT-6 Sol - **3.60**
 - Claude Opus 5.5 - **7.20**
 - Claude Opus 5 - **9.00**
 - Claude Opus 4.8 - **9.00**
