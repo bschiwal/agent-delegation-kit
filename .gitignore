@@ -18,3 +18,8 @@ desktop.ini
 registry/*.local.json
 build/local/
 build/last-build.json
+
+# Session reviews written on a machine that can't push (a work clone). Carried
+# home by hand, cleaned up, and filed in docs/feedback/ there.
+docs/feedback/local/*
+!docs/feedback/local/README.md

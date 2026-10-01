@@ -1,6 +1,9 @@
 {
   "_note": "EXAMPLE. Copy to registry/policy.local.json (gitignored) and fill in your organization's model policy. Keep employer policy and internal usage figures in the .local file only - this repo is public. The build reads the profile matching -Preset; a local profile overrides that preset's role models and the cost figures shown in the Copilot instructions. Local builds are written to build/local/ so they can never be committed.",
 
+  "_config_only_clone": "Set true on a machine that only pulls this repo (a work clone). The build then stops if any committed file has changed there, since git pull would overwrite or conflict with it. Leave it out, or false, on the machine where you change the kit itself.",
+  "config_only_clone": false,
+
   "profiles": {
     "work": {
       "summary": "One line on the policy, for whoever reads this file next.",
