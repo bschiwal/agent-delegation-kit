@@ -25,9 +25,9 @@ Availability for preset **personal** is unrestricted, so the whole catalogue is 
 | Grok 4.5 | xAI | $2.00 | $6.00 | **2.80** | standard | 3.5 | unverified | yes |
 | Grok 4.6 | xAI | $2.00 | $6.00 | **2.80** | standard | 3.5 | unverified | yes |
 | Gemini 3.5 Flash | Google | $1.50 | $9.00 | **3.00** | standard | 2.5 | unverified | yes |
-| Claude Sonnet 5.5 | Anthropic | $2.00 | $10.00 | **3.60** | standard | _unscored_ | unverified | yes |
+| Claude Sonnet 5.5 | Anthropic | $2.00 | $10.00 | **3.60** | standard | 4.5 | unverified | yes |
 | GPT-6 Sol | OpenAI | $2.00 | $10.00 | **3.60** | standard | 4.5 | yes | yes |
-| GPT-6.1 Sol | OpenAI | $2.00 | $10.00 | **3.60** | standard | _unscored_ | unverified | yes |
+| GPT-6.1 Sol | OpenAI | $2.00 | $10.00 | **3.60** | standard | 4.75 | unverified | yes |
 | Claude Sonnet 5 | Anthropic | $2.00 | $10.00 | **3.60** | standard | 4 | yes | yes |
 | GPT-5.6 Terra | OpenAI | $2.00 | $12.00 | **4.00** | premium | 4 | yes | yes |
 | GPT-5.3-Codex | OpenAI | $1.75 | $14.00 | **4.20** | standard | 4 | yes | yes |
@@ -45,8 +45,6 @@ Availability for preset **personal** is unrestricted, so the whole catalogue is 
 | GPT-6 Astra | OpenAI | $10.00 | $50.00 | **18.00** | frontier | 5 | yes | yes |
 | Claude Fable 5 | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 5 | unverified | yes |
 | Claude Opus 4.8 (fast mode) | Anthropic | $10.00 | $50.00 | **18.00** | frontier | 4.5 | yes | yes |
-
-**2 model(s) are unscored.** Automatic substitution never picks an unscored model, so they stay unused until you set `merit` in `registry/models.json` or name one explicitly in a role: GPT-6.1 Sol, Claude Sonnet 5.5.
 
 ## Role routing
 
