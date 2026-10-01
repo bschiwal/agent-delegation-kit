@@ -18,7 +18,7 @@ how it got there, and what would justify reopening it.
 
 | Question | Current answer | History | Reopen only if |
 |---|---|---|---|
-| Turn caps | Builders (`pbir-builder`, `model-builder`) 40. `implementer` 25, `debugger` 30, reviewers 20, `repo-scout` 15 | Caps were cut from 50 to 25 on 2026-09-18, because runs hit the cap editing one visual per turn. Builders went back up to 40 on 2026-09-25, because they hit 25 while doing the right work. The second change fixed a different problem; it did not reverse the first. | Runs stop at the cap *while working correctly* (raise it), or *while wandering* (fix the brief or the pacing, not the cap). |
+| Turn caps | Builders (`pbir-builder`, `model-builder`) 40. `implementer` 25, `debugger` and `sql-developer` 30, reviewers 20, `repo-scout` 15 | Caps were cut from 50 to 25 on 2026-09-18, because runs hit the cap editing one visual per turn. Builders went back up to 40 on 2026-09-25, because they hit 25 while doing the right work. The second change fixed a different problem; it did not reverse the first. | Runs stop at the cap *while working correctly* (raise it), or *while wandering* (fix the brief or the pacing, not the cap). |
 | When to stop and reply | Generated footer: stop new work at 75% of the cap, reply by cap−4 (turn 36 for a 40-turn builder). `pbir-builder` also validates by turn 24. In Claude Code, `hooks/turn-budget.ps1` tells the subagent when it reaches each point | 75% point added 2026-09-18. The cap−4 reply deadline added 2026-09-26. The next build still overran with the rule installed, because agents don't count their own turns, so the hook was added 2026-09-27 rather than a different number. | Runs overrun *with* the hook's notes in their transcript. Until then, don't move the numbers. |
 | Progress file | Builders append to `.claude/runs/<step>.md` after each milestone. Replies are about 25 lines, details go in the file | Added 2026-09-26 (G3 AAR P1, P6). Reviewers were deliberately left out, because their findings *are* the payload. | - |
 | Recon | Where-is and how-does questions go to `repo-scout`. Complete inventories (every page, literal, ID) are a script the orchestrator runs | 2026-09-18: the orchestrator read four large files itself, so recon moved out. 2026-09-27: two scout inventories cost 115k, overran and missed instances, so inventories went to scripts. This narrowed the 09-18 rule; it did not reverse it. | A scout is again asked for a complete list, or an orchestrator reads files itself for a where-is question. |
@@ -35,6 +35,35 @@ how it got there, and what would justify reopening it.
 | Copilot and MCP | Copilot agents get MCP tools through `registry/mcp.json` | 2026-09-18: `model-builder` was made Claude-only on the assumption Copilot couldn't use MCP. That was wrong, and was reversed the same day. | - |
 | Plan-only mode | A mode of both orchestrators. There is no separate router agent | 2026-09-18: `delegation-router` was removed because it duplicated `architect`. | - |
 | Test and replica queries | `TREATAS` or `SUMMARIZECOLUMNS`, never `CROSSJOIN` grids. Replicas use different mechanics from the measure under test | `CROSSJOIN` rule 2026-09-25; replica rule 2026-09-26. | - |
+
+## 2026-10-01 - `sql-developer` agent
+
+A builder for SQL that comes before Power BI and Fabric: views, queries over
+existing views, performance tuning, and explaining existing SQL. Until now, SQL
+authoring went to `implementer`, which has no rules about grain, proving a
+rewrite, or keeping away from a live database.
+
+- **New agent `sql-developer`** (`implement`, 30 turns). T-SQL by default, with
+  notes on the narrower Fabric Warehouse / SQL analytics endpoint surface. It
+  reads view definitions before building on them, puts a grain/source/filters
+  header on every view, and shapes views for a star schema (explicit types, no
+  `ORDER BY`, `SELECT *` or `NOLOCK`). A tuning counts only with a before and
+  after measurement, and proof of the same result: row count, `EXCEPT` both
+  ways, and column totals.
+- **Read-only against databases.** It never runs DDL or DML. Views and index
+  recommendations are delivered as scripts for the user to deploy, unless the
+  brief names a dev database and allows deploying there.
+- **Review stays with `data-model-reviewer`**, which already covers SQL. This
+  agent's explanations mark suspect logic as unconfirmed and send serious items
+  there. `data-model-reviewer` got five view-specific checks: `DISTINCT` covering
+  a fan-out, `datetime` end-of-range, `COUNT(col)` versus `COUNT(*)`, a `WHERE`
+  that turns a `LEFT JOIN` into an inner join, and a stated grain the joins
+  don't keep.
+- Under `-Preset work` it follows `implement` to Gemini 3.7 Flash in Copilot.
+  Add a `role_overrides` entry in `policy.local.json` if work SQL should stay on
+  Claude.
+- Driven by a request, not a report: there is no build evidence yet. The turn
+  cap and pacing copy the builders' settled rules.
 
 ## 2026-10-01 - Config-only work clone
 

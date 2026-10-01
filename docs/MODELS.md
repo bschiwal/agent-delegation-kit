@@ -79,6 +79,7 @@ Built with profile **personal**.
 | pr-scribe | write-prose | haiku | GPT-6 Luna |
 | repo-scout | search | haiku | GPT-6 Luna |
 | security-reviewer | review-critical | opus | Claude Opus 5.5 |
+| sql-developer | implement | sonnet | Claude Sonnet 5 |
 | test-author | implement | sonnet | Claude Sonnet 5 |
 | triage-lead | triage | sonnet | Claude Sonnet 5 |
 

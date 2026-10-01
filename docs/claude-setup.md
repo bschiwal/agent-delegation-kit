@@ -29,7 +29,7 @@ cd agent-delegation-kit
 ```
 
 This writes the agent files to `~\.claude\agents\`, which makes them available in
-every project on the machine. That's 15 agents, or 14 with `-WithInstructions`,
+every project on the machine. That's 16 agents, or 15 with `-WithInstructions`,
 which skips `triage-lead` because the session itself orchestrates (see below).
 
 If PowerShell refuses to run the script:

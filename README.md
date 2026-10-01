@@ -386,6 +386,7 @@ that is chat-only and cannot drive an agent all surface as errors or warnings.
 | `implementer` | implement | Build to a settled spec |
 | `pbir-builder` | implement | Power BI report pages from a spec, via a generator script - one page per run |
 | `model-builder` | implement | Live Power BI model changes via the modeling MCP, tested with DAX - uses your session's connection (needs the Power BI MCP server; see `registry/mcp.json`) |
+| `sql-developer` | implement | SQL views, queries over existing views, tuning proven equal by row count and `EXCEPT`, explaining existing SQL - delivers scripts, never runs DDL |
 | `test-author` | implement | Tests for existing code |
 | `bulk-editor` | bulk-edit | The same mechanical change across many files |
 | `repo-scout` | search | Where is X, how does Y work |
