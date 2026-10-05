@@ -40,8 +40,8 @@ are input-heavy). Real billing can differ from list price - measure yours:
 - GPT-5.6 Luna - **0.40**
 - Gemini 3.7 Flash - **1.35**
 - Claude Haiku 4.5 - **1.80**
-- Claude Sonnet 5 - **3.60**
 - GPT-6 Sol - **3.60**
+- Claude Sonnet 5 - **3.60**
 - Claude Opus 5.5 - **7.20**
 - Claude Opus 5 - **9.00**
 - Claude Opus 4.8 - **9.00**
