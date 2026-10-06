@@ -77,8 +77,12 @@ Each agent declares its model as a **prioritised list**:
 model: ['Claude Opus 5', 'Claude Opus 4.8', 'Claude Opus 4.7', 'GPT-6 Astra']
 ```
 
-When an agent is called by another, VS Code tries them in order and uses the
-first one available. This matters in a
+When an agent is called by another, VS Code reads the list and uses the first
+model available - tested in 1.139, where `pbir-builder` with
+`['GPT-5.6 Terra', 'Gemini 3.8 Flash']` ran on Terra. Falling through to a later
+entry when the first is blocked has not been tested in the harness yet; keeping
+`availability.local.json` current means the build already leaves blocked models
+out. This matters in a
 managed org: if your admin has disabled a model, the agent falls through to the
 next instead of failing. It also means the fallback order encodes intent - for
 review agents it is Claude first, all the way down, with GPT-6 Astra only as a
