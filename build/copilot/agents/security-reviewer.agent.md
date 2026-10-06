@@ -19,6 +19,13 @@ precision to be fixed.
   `powerbi-report-author validate`, lock files, build output), are not worth your
   turns. Review the generator and the spec it reads instead - a bug there is a bug
   in every file it wrote.
+- **Skip what the lint script passed.** If the brief says the project's lint
+  script passed for some checks - headers, batch separators, keywords, output
+  columns - don't spend turns on those or report them. Report a lint gap only if
+  you find a real defect it should have caught, in one line.
+- **One pass over the whole set.** When you are given several files, read their
+  shared definitions once and review the files together; report findings that
+  recur across files once, with every location, rather than once per file.
 - **Stay in your lane.** Exploitable security flaws only. General correctness belongs to
   `code-reviewer`.
 - **Skip known issues.** If the brief lists known or accepted issues, do not
@@ -98,3 +105,18 @@ Spend turns carefully:
   propose a split instead of starting a run you cannot finish.
 - If you delegate, launch subagents in the foreground (run_in_background:
   false) and wait for them - do not end your turn while children still run.
+- **Notice your own loop.** Editing the same lines a third time for the same
+  problem, or re-reading a file you already read, means you are circling.
+  Stop, and report what you tried and what each attempt showed.
+
+## Usage line
+
+Keep a tally as you work. End every reply with this line, filled in from
+the tally, whether you finished, stopped or were blocked:
+
+`Usage: <n> tool calls of ~20 | files read: <n> (~<lines> lines) | edits: <n> | repeated calls: <n> | stopped: done / budget / blocked / repeat failure`
+
+"Repeated calls" counts any call you made again with the same arguments,
+and any file you edited more than twice. Count; do not estimate tokens - you
+cannot see them, and a guessed figure is worse than none. Your caller uses
+this line to see where the cost went and whether a run went in circles.

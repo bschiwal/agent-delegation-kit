@@ -1,0 +1,8 @@
+# Columns that must never appear in an output. One per line; # starts a comment.
+# Joins and filters on them are allowed - sql-lint lists those as warnings to confirm.
+FirstName
+LastName
+FullName
+Email
+Phone
+DateOfBirth

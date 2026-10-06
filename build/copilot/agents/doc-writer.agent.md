@@ -66,3 +66,18 @@ Spend turns carefully:
   propose a split instead of starting a run you cannot finish.
 - If you delegate, launch subagents in the foreground (run_in_background:
   false) and wait for them - do not end your turn while children still run.
+- **Notice your own loop.** Editing the same lines a third time for the same
+  problem, or re-reading a file you already read, means you are circling.
+  Stop, and report what you tried and what each attempt showed.
+
+## Usage line
+
+Keep a tally as you work. End every reply with this line, filled in from
+the tally, whether you finished, stopped or were blocked:
+
+`Usage: <n> tool calls of ~20 | files read: <n> (~<lines> lines) | edits: <n> | repeated calls: <n> | stopped: done / budget / blocked / repeat failure`
+
+"Repeated calls" counts any call you made again with the same arguments,
+and any file you edited more than twice. Count; do not estimate tokens - you
+cannot see them, and a guessed figure is worse than none. Your caller uses
+this line to see where the cost went and whether a run went in circles.

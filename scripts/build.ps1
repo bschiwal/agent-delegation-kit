@@ -346,6 +346,26 @@ function Get-BudgetFooter {
     $lines += '  propose a split instead of starting a run you cannot finish.'
     $lines += '- If you delegate, launch subagents in the foreground (run_in_background:'
     $lines += '  false) and wait for them - do not end your turn while children still run.'
+    if ($Soft) {
+        # Copilot shows neither the caller nor the agent a token figure, so the agent
+        # reports the counts it can keep honestly, and the orchestrator reads them for
+        # cost and for loops (2026-10-06 report: no per-run figures at all).
+        $lines += '- **Notice your own loop.** Editing the same lines a third time for the same'
+        $lines += '  problem, or re-reading a file you already read, means you are circling.'
+        $lines += '  Stop, and report what you tried and what each attempt showed.'
+        $lines += ''
+        $lines += '## Usage line'
+        $lines += ''
+        $lines += 'Keep a tally as you work. End every reply with this line, filled in from'
+        $lines += 'the tally, whether you finished, stopped or were blocked:'
+        $lines += ''
+        $lines += '`Usage: <n> tool calls of ~' + $MaxTurns + ' | files read: <n> (~<lines> lines) | edits: <n> | repeated calls: <n> | stopped: done / budget / blocked / repeat failure`'
+        $lines += ''
+        $lines += '"Repeated calls" counts any call you made again with the same arguments,'
+        $lines += 'and any file you edited more than twice. Count; do not estimate tokens - you'
+        $lines += 'cannot see them, and a guessed figure is worse than none. Your caller uses'
+        $lines += 'this line to see where the cost went and whether a run went in circles.'
+    }
     return ($lines -join "`n") + "`n"
 }
 
@@ -383,6 +403,24 @@ function Get-RosterTable {
         $lines += "| $($r.When) | ``$($r.Name)`` | $($r.Tier) |"
     }
     return ($lines -join "`n")
+}
+
+function Get-ShellAgentList {
+    # <!-- GENERATE:shell-agents --> - which delegable agents can run commands on
+    # this platform. A 2026-10-06 Copilot report sent `git status` to agents with
+    # no shell; generated so it cannot drift from each agent's tools.
+    param([string]$Platform)
+    $with = @(); $without = @()
+    foreach ($a in $parsed) {
+        if ($a.Meta.delegable -eq $false) { continue }
+        if ($Platform -eq 'copilot') {
+            if ($claudeOnlyNames -contains $a.Meta.name) { continue }
+            $has = @($a.Meta.copilot.tools) -contains 'execute'
+        }
+        else { $has = ([string]$a.Meta.claude.tools) -match '\bBash\b' }
+        if ($has) { $with += "``$($a.Meta.name)``" } else { $without += "``$($a.Meta.name)``" }
+    }
+    return "- **Can run commands:** $(($with | Sort-Object) -join ', ')`n- **Cannot:** $(($without | Sort-Object) -join ', ')"
 }
 
 # --- MCP servers -------------------------------------------------------------
@@ -435,6 +473,8 @@ function Expand-Template {
     })
     $roster = Get-RosterTable
     $out = [regex]::Replace($out, '<!--\s*GENERATE:roster\s*-->', { param($m) $roster })
+    $shell = Get-ShellAgentList $Platform
+    $out = [regex]::Replace($out, '<!--\s*GENERATE:shell-agents\s*-->', { param($m) $shell })
     if ($out -match '<!--\s*(INCLUDE|GENERATE):|<!--\s*(IF:\w+|ENDIF)\s*-->') { throw "Unexpanded template marker left in output: $($Matches[0])" }
     return $out
 }
@@ -576,7 +616,11 @@ foreach ($agent in $parsed) {
     }
     $lines = @('---')
     $lines += "name: $($meta.name)"
-    $lines += "description: $(Format-YamlScalar $meta.description)"
+    # "copilot": { "description": ... } replaces the shared description on Copilot only,
+    # for an agent whose powers differ there (triage-lead edits small things in Copilot).
+    $copilotDesc = $meta.description
+    if ($copilotExtra.Contains('description')) { $copilotDesc = $copilotExtra['description']; $copilotExtra.Remove('description') }
+    $lines += "description: $(Format-YamlScalar $copilotDesc)"
     $lines += "model: $(Format-YamlList $copilotModels)"
     foreach ($k in $copilotExtra.Keys) { $lines += "${k}: $(Format-YamlValue $copilotExtra[$k])" }
     $lines += '---'
