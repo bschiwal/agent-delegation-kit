@@ -37,6 +37,24 @@ how it got there, and what would justify reopening it.
 | Plan-only mode | A mode of both orchestrators. There is no separate router agent | 2026-09-18: `delegation-router` was removed because it duplicated `architect`. | - |
 | Test and replica queries | `TREATAS` or `SUMMARIZECOLUMNS`, never `CROSSJOIN` grids. Replicas use different mechanics from the measure under test | `CROSSJOIN` rule 2026-09-25; replica rule 2026-09-26. | - |
 
+## 2026-10-06 - Copilot: the picked agent runs on the picker
+
+Tested on a work machine in VS Code 1.139 (Copilot harness), reading the models
+from `~/.copilot/session-state`:
+
+- `triage-lead`, picked in the dropdown, ran on the **picker's** model
+  (Gemini 3.8 Flash) although its file named GPT-5.6 Terra, as a list and as a
+  single name. The picker does not change when an agent is picked.
+- Agents it called ran on **their own profiles**: `repo-scout` on GPT-6 Luna,
+  `pbir-builder` on GPT-5.6 Terra.
+
+`docs/vscode-copilot-setup.md` no longer says the agent's model is "already
+set": the user sets the picker to the picked agent's first model, avoids Auto,
+and can check a session's real models with a script over the session log. No
+build change: a single model name did not help the picked agent, and lists
+work for called agents. Harness support for `model:` on the picked agent
+landed in VS Code Insiders 1.141 (microsoft/vscode#338489) - re-test then.
+
 ## 2026-10-06 - Copilot triage-lead edits; SQL rules for both platforms; starter SQL tools
 
 Follow-up to the Copilot usage report below, on the user's answers.

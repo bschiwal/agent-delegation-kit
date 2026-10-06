@@ -41,8 +41,35 @@ one.
 
 ## 4. Use them
 
-Pick the agent from the dropdown, then type your request. The agent's model is
-already set - you do not need to touch the model picker.
+Pick the agent from the dropdown, then **set the model picker yourself**, then
+type your request.
+
+**The agent you pick runs on the picker, not its profile.** Tested in VS Code
+1.139 (the Copilot harness, 2026-10-06): `triage-lead` was set to GPT-5.6 Terra
+and ran on whatever the picker showed, and the picker does not change when you
+pick an agent - with a list or a single name in `model:`. **Agents it calls
+follow their own profiles**: in the same session `repo-scout` ran on GPT-6 Luna
+and `pbir-builder` on GPT-5.6 Terra, while the picker was on Gemini. So the
+picker decides one agent's model - the one you talk to - and the profiles decide
+the rest, which is most of the work.
+
+In practice: before you start, set the picker to the first model on the picked
+agent's `model:` line (open its file in `~\.copilot\agents\`). Avoid **Auto**:
+it hands the orchestrator, the longest-running context, to GitHub's choice.
+Support for the agent's own `model:` in the harness landed in VS Code Insiders
+1.141 ([microsoft/vscode#338489](https://github.com/microsoft/vscode/issues/338489));
+re-test when it reaches stable.
+
+To check which models a session really used, read the harness's session log:
+
+```powershell
+$s = Get-ChildItem "$env:USERPROFILE\.copilot\session-state" -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+Get-ChildItem $s.FullName -Recurse -File | Select-String -Pattern '"model"\s*:\s*"[^"]+"' -AllMatches |
+  ForEach-Object { $_.Matches.Value } | Group-Object | Select-Object Count, Name
+```
+
+It counts each model name in the newest session. Read only those names - the
+files are a full record of the session.
 
 Each agent declares its model as a **prioritised list**:
 
@@ -50,7 +77,12 @@ Each agent declares its model as a **prioritised list**:
 model: ['Claude Opus 5', 'Claude Opus 4.8', 'Claude Opus 4.7', 'GPT-6 Astra']
 ```
 
-VS Code tries them in order and uses the first one available. This matters in a
+When an agent is called by another, VS Code reads the list and uses the first
+model available - tested in 1.139, where `pbir-builder` with
+`['GPT-5.6 Terra', 'Gemini 3.8 Flash']` ran on Terra. Falling through to a later
+entry when the first is blocked has not been tested in the harness yet; keeping
+`availability.local.json` current means the build already leaves blocked models
+out. This matters in a
 managed org: if your admin has disabled a model, the agent falls through to the
 next instead of failing. It also means the fallback order encodes intent - for
 review agents it is Claude first, all the way down, with GPT-6 Astra only as a
@@ -216,7 +248,10 @@ are there:
 Get-ChildItem ~\.copilot\agents
 ```
 
-**An agent runs on the wrong model.** The first model in its list is not available
+**The agent you picked runs on the wrong model.** It runs on the picker - see
+"Use them" above. Set the picker to the model you want.
+
+**An agent called by another runs on the wrong model.** The first model in its list is not available
 to your account, so it fell through. Open the model picker to see what you
 actually have, then reorder the role in `registry/policy.json` and rebuild.
 
