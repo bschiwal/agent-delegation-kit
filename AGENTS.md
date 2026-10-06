@@ -135,7 +135,9 @@ Delegable agents need a short `"when"` field: their row in the generated roster.
 The routing rules live once, in `templates/partials/delegation-core.md`, and are
 pulled into both `templates/claude-delegation.md` (the main-session policy) and
 `triage-lead` by `<!-- INCLUDE:delegation-core -->`. `<!-- GENERATE:roster -->`
-expands to the agent table built from every `when`. Edit the partial, not the
+expands to the agent table built from every `when`. `<!-- GENERATE:shell-agents -->`
+lists which delegable agents can run commands on the platform being built,
+from each agent's tools. Edit the partial, not the
 built copies - the build fails on a missing `when` or an unexpanded marker.
 
 Every agent also gets a generated **Turn budget** footer (`Get-BudgetFooter` in

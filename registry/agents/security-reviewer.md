@@ -29,6 +29,15 @@ precision to be fixed.
   `powerbi-report-author validate`, lock files, build output), are not worth your
   turns. Review the generator and the spec it reads instead - a bug there is a bug
   in every file it wrote.
+<!-- IF:copilot -->
+- **Skip what the lint script passed.** If the brief says the project's lint
+  script passed for some checks - headers, batch separators, keywords, output
+  columns - don't spend turns on those or report them. Report a lint gap only if
+  you find a real defect it should have caught, in one line.
+- **One pass over the whole set.** When you are given several files, read their
+  shared definitions once and review the files together; report findings that
+  recur across files once, with every location, rather than once per file.
+<!-- ENDIF -->
 - **Stay in your lane.** Exploitable security flaws only. General correctness belongs to
   `code-reviewer`.
 - **Skip known issues.** If the brief lists known or accepted issues, do not

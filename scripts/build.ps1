@@ -385,6 +385,24 @@ function Get-RosterTable {
     return ($lines -join "`n")
 }
 
+function Get-ShellAgentList {
+    # <!-- GENERATE:shell-agents --> - which delegable agents can run commands on
+    # this platform. A 2026-10-06 Copilot report sent `git status` to agents with
+    # no shell; generated so it cannot drift from each agent's tools.
+    param([string]$Platform)
+    $with = @(); $without = @()
+    foreach ($a in $parsed) {
+        if ($a.Meta.delegable -eq $false) { continue }
+        if ($Platform -eq 'copilot') {
+            if ($claudeOnlyNames -contains $a.Meta.name) { continue }
+            $has = @($a.Meta.copilot.tools) -contains 'execute'
+        }
+        else { $has = ([string]$a.Meta.claude.tools) -match '\bBash\b' }
+        if ($has) { $with += "``$($a.Meta.name)``" } else { $without += "``$($a.Meta.name)``" }
+    }
+    return "- **Can run commands:** $(($with | Sort-Object) -join ', ')`n- **Cannot:** $(($without | Sort-Object) -join ', ')"
+}
+
 # --- MCP servers -------------------------------------------------------------
 # Agents declare MCP needs abstractly; registry/mcp.json says what each server is
 # called on each platform. Claude Code gets explicit mcp__<prefix>__<tool> names.
@@ -435,6 +453,8 @@ function Expand-Template {
     })
     $roster = Get-RosterTable
     $out = [regex]::Replace($out, '<!--\s*GENERATE:roster\s*-->', { param($m) $roster })
+    $shell = Get-ShellAgentList $Platform
+    $out = [regex]::Replace($out, '<!--\s*GENERATE:shell-agents\s*-->', { param($m) $shell })
     if ($out -match '<!--\s*(INCLUDE|GENERATE):|<!--\s*(IF:\w+|ENDIF)\s*-->') { throw "Unexpanded template marker left in output: $($Matches[0])" }
     return $out
 }

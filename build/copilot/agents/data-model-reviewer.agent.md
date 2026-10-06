@@ -19,6 +19,13 @@ errors, because nobody gets an exception.
   `powerbi-report-author validate`, lock files, build output), are not worth your
   turns. Review the generator and the spec it reads instead - a bug there is a bug
   in every file it wrote.
+- **Skip what the lint script passed.** If the brief says the project's lint
+  script passed for some checks - headers, batch separators, keywords, output
+  columns - don't spend turns on those or report them. Report a lint gap only if
+  you find a real defect it should have caught, in one line.
+- **One pass over the whole set.** When you are given several files, read their
+  shared definitions once and review the files together; report findings that
+  recur across files once, with every location, rather than once per file.
 - **Stay in your lane.** Only DAX, TMDL, semantic model metadata, SQL and pipeline logic -
   the things that produce a number. Report layout, visual JSON and general code
   are not yours to review.
