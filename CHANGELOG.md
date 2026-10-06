@@ -22,7 +22,7 @@ how it got there, and what would justify reopening it.
 | When to stop and reply | Generated footer: stop new work at 75% of the cap, reply by cap−4 (turn 36 for a 40-turn builder). `pbir-builder` also validates by turn 24. In Claude Code, `hooks/turn-budget.ps1` tells the subagent when it reaches each point | 75% point added 2026-09-18. The cap−4 reply deadline added 2026-09-26. The next build still overran with the rule installed, because agents don't count their own turns, so the hook was added 2026-09-27 rather than a different number. | Runs overrun *with* the hook's notes in their transcript. Until then, don't move the numbers. |
 | Progress file | Builders append to `.claude/runs/<step>.md` after each milestone. Replies are about 25 lines, details go in the file | Added 2026-09-26 (G3 AAR P1, P6). Reviewers were deliberately left out, because their findings *are* the payload. | - |
 | Recon | Where-is and how-does questions go to `repo-scout`. Complete inventories (every page, literal, ID) are a script the orchestrator runs | 2026-09-18: the orchestrator read four large files itself, so recon moved out. 2026-09-27: two scout inventories cost 115k, overran and missed instances, so inventories went to scripts. This narrowed the 09-18 rule; it did not reverse it. | A scout is again asked for a complete list, or an orchestrator reads files itself for a where-is question. |
-| Large output | Through `log-triager` or a filter script, never read raw. One validation summary script per project, written before builders start | Filter rule 2026-09-18. Per-project script 2026-09-26: parallel builders each wrote their own filter and disagreed on counts. The kit ships the rule, not the script (the project owns it). | The kit needs a language or runtime dependency anyway. |
+| Large output | Through `log-triager` or a filter script, never read raw. One validation summary script per project, written before builders start | Filter rule 2026-09-18. Per-project script 2026-09-26: parallel builders each wrote their own filter and disagreed on counts. The kit ships the rule, not the script (the project owns it). 2026-10-06: generic SQL query and lint *starters* ship in `templates/project-tools/sql/` for a project to copy; the project still owns its copy. | The kit needs a language or runtime dependency anyway. |
 | Opus on builders | Default `implement` model. The main session may pass `model: "opus"` for a hard step, a batch that can't be split, or a second attempt. Never for finding out what to fix: an Opus brief states the fix in one sentence, and the team line shows it | 2026-09-25: the default model landed none of a 7-fix batch but landed single fixes. 2026-09-27: an Opus run that bundled diagnosis and fix cost 146k with no fix. 2026-09-28: the rule was broken again (three Opus diagnosis runs, 415k), so the brief now has to name the fix. | Opus runs still go out as diagnoses with a named fix in the brief. Then it needs a hook on the Agent call. |
 | Run sizing | Size by budget. Every run has a floor of about 50-70k, so trivial, fully specified edits are batched into one run, and edits in ranges the orchestrator has already read are made by the orchestrator. Fixes that need reading or reasoning are still split | Split rule 2026-09-25 (a 7-fix batch landed nothing). Floor and batching 2026-09-28: five trivial edits split across three runs cost about 130k extra. This narrowed the split rule to fixes that need thought; it did not reverse it. | A batch of *trivial* edits fails the way the 09-25 batch did. |
 | Shared helpers | Built and reviewed in their own run before pages use them. A helper of about 50 lines with an exact example may go with its first use, or be written by the orchestrator, but is reviewed before anything copies it | Own step 2026-09-27 (a helper plus four visuals overran). Small-helper exception 2026-09-28. The part that matters - reviewed before copied - did not change. | A small helper built with its first use ships a bug into a copy. |
@@ -31,11 +31,50 @@ how it got there, and what would justify reopening it.
 | Fable | Only on a grant in the request or a Yes to one question. Enforced by `hooks/fable-gate.ps1` | 2026-09-22. | - |
 | Session length | One session per build pass. A checked Desktop save gate counts as a gate, and at the gate the orchestrator *asks* (`Hand off?`) rather than offering. `hooks/context-meter.ps1` tells the main session its context size on every user message, and to hand off above about 100k | Rule 2026-09-25, sharpened 2026-09-26, made a question 2026-09-27. The question was still skipped (a session ran through about five save gates), so 2026-09-28 added the hook, as this row said it would. | Sessions still run past 150k with the meter's advice in their transcript. Then the thresholds or the note's wording need a look. |
 | Work machine setup | A clone that only pulls, with its own `*.local.json` files, never copied from home. `"config_only_clone": true` makes the build stop if a committed file changed there. Lessons come home as reviews from `docs/feedback/local/` | 2026-10-01. The docs used to say to copy the `.local` files from home to work. New models come from the public catalogue refresh, so there is no local model catalogue (rejected 2026-10-01: work allows fewer models than the public list, not more). | A work model is missing from the public catalogue for longer than a refresh cycle. |
-| Copilot-only rules | Copilot sessions orchestrate through `triage-lead`, which carries its own Copilot-only rules (conventions first, lint script, grouped reviews, fresh fix runs, no waiting turns) in `IF:copilot` blocks. Claude output is unchanged | 2026-10-06: a Copilot SQL build cost about 35 runs; the Claude side was judged to be working well and kept separate. | Claude Code shows the same over-splitting; then move the rule into `delegation-core.md`. |
+| Copilot-only rules | Copilot sessions orchestrate through `triage-lead`, which edits small things itself and carries Copilot-only cost rules (grouped reviews, fresh fix runs, no waiting turns, usage line) in `IF:copilot` blocks. Conventions-first, lint-before-review and the SQL rules apply to both platforms | 2026-10-06: a Copilot SQL build cost about 35 runs. Rules that hold for any build moved to `delegation-core.md` the same day; the rest stayed Copilot-only. | Claude Code shows the same over-splitting; then move that rule into `delegation-core.md`. |
 | Default orchestrator in Claude Code | The main session, via the installed `claude-delegation.md` policy. Not `triage-lead` | 2026-09-18: `"agent": "triage-lead"` replaces the system prompt and drops MCP, skills and Opus. | Claude Code lets an agent-default session keep MCP and skills. |
 | Copilot and MCP | Copilot agents get MCP tools through `registry/mcp.json` | 2026-09-18: `model-builder` was made Claude-only on the assumption Copilot couldn't use MCP. That was wrong, and was reversed the same day. | - |
 | Plan-only mode | A mode of both orchestrators. There is no separate router agent | 2026-09-18: `delegation-router` was removed because it duplicated `architect`. | - |
 | Test and replica queries | `TREATAS` or `SUMMARIZECOLUMNS`, never `CROSSJOIN` grids. Replicas use different mechanics from the measure under test | `CROSSJOIN` rule 2026-09-25; replica rule 2026-09-26. | - |
+
+## 2026-10-06 - Copilot triage-lead edits; SQL rules for both platforms; starter SQL tools
+
+Follow-up to the Copilot usage report below, on the user's answers.
+
+- **Copilot `triage-lead` now edits** (`edit` tool) and has a **Do it yourself
+  when** section, modelled on the Claude main session's: questions from a few
+  reads, a small obvious edit, edits in lines it has already read, review fixes
+  it can state exactly, and notes (conventions, resume notes, run logs, session
+  reviews). New code, unread code and work across more than about three files
+  still go out, and its own edits are reviewed. Asked for because every fix in
+  Copilot paid an agent's 50-70K floor. The Claude `triage-lead` is unchanged -
+  in Claude Code the main session already does this.
+- **Build:** `"copilot": { "description": ... }` replaces the shared
+  description on Copilot only, so the two `triage-lead` builds describe what
+  each can do.
+- **Moved to both platforms**, because they hold for any multi-builder build and
+  any SQL: "conventions before parallel builders" and "deterministic checks are
+  a script" (now in `delegation-core.md`); the `sql-developer` standing rules;
+  the reviewers' "skip what the lint script passed" and "one pass over the
+  whole set". Briefs now name the lint and query commands too.
+- **Kept Copilot-only**, because the Claude side has no evidence of the problem
+  or already has a better tool for it: grouped reviews and one security pass,
+  fresh fix runs, no waiting turns, the usage line and loop check (Claude has
+  real token figures and the turn-budget hook), and the shell-agents check.
+- **Starter SQL tools** in `templates/project-tools/sql/`: `sql-query.ps1`
+  (read-only queries using the project's `.env`, so agents never open it or see
+  a password; refuses writes, `INTO` and `EXEC`, rolls every batch back),
+  `sql-lint.ps1` (batches, `;;`, view headers, `ORDER BY` in views, `SELECT *`,
+  `NOLOCK`, variables across `GO`, SQLCMD checks, never-output columns), a
+  conventions template and a never-output list. The report's session said it
+  had no database access although the project's `.env` had a connection: that
+  was `sql-developer` correctly refusing to hunt for credentials.
+  `sql-developer` now looks for a query script before giving up, and
+  `data-model-reviewer` settles SQL data assumptions with one. These are
+  starters a project copies and owns; the kit never runs them, so the settled
+  "the project owns the script" row still holds. Tested here against sample
+  SQL with each defect class; the query script's guard and `.env` parsing were
+  tested, but not a query against a live server.
 
 ## 2026-10-06 - Copilot orchestration: fewer runs per build
 source: [`docs/feedback/2026-10-06-copilot-sql-scripts-usage.md`](docs/feedback/2026-10-06-copilot-sql-scripts-usage.md)

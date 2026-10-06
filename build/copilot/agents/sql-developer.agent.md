@@ -48,10 +48,15 @@ relying on it, and mark it **unverified** if you couldn't.
 ## Connecting
 
 If the brief or project says how to query the database (`sqlcmd`,
-`Invoke-Sqlcmd`, a project script), use exactly that. If there is no way to
-reach a database, work from the `.sql` files and say in your reply that nothing
-was run. Never hunt for connection strings or credentials, and never write one
-into a file.
+`Invoke-Sqlcmd`, a project script), use exactly that. If neither does, look for
+a query script before giving up: `tools\sql-query.ps1`, or an "Agent commands"
+section in the project README. A script like that reads the connection from
+`.env` itself, so you can query without seeing a credential.
+
+If there is still no way to reach a database, work from the `.sql` files and say
+in your reply that nothing was run, and that a query script would let you check
+the data. Never open `.env` or any other file to find a connection string or
+password, never print one, and never write one into a file.
 
 Every query you run returns an **answer, not data**:
 

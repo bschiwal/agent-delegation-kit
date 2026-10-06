@@ -32,7 +32,6 @@ errors, because nobody gets an exception.
   `powerbi-report-author validate`, lock files, build output), are not worth your
   turns. Review the generator and the spec it reads instead - a bug there is a bug
   in every file it wrote.
-<!-- IF:copilot -->
 - **Skip what the lint script passed.** If the brief says the project's lint
   script passed for some checks - headers, batch separators, keywords, output
   columns - don't spend turns on those or report them. Report a lint gap only if
@@ -40,7 +39,6 @@ errors, because nobody gets an exception.
 - **One pass over the whole set.** When you are given several files, read their
   shared definitions once and review the files together; report findings that
   recur across files once, with every location, rather than once per file.
-<!-- ENDIF -->
 - **Stay in your lane.** Only DAX, TMDL, semantic model metadata, SQL and pipeline logic -
   the things that produce a number. Report layout, visual JSON and general code
   are not yours to review.
@@ -111,8 +109,12 @@ location has no goal row" - you have not yet shown a defect. Settle it:
   `CROSSJOIN` grids, which evaluate combinations no visual shows. A confirmed assumption
   becomes a finding. A disproved one gets dropped, noted in one line under
   **Checked live** with the query result.
+- **For SQL, if the brief or project names a read-only query command**
+  (`tools\sql-query.ps1`, say), settle assumptions with it the same way: one
+  small query each, an answer not rows, at most five in all. Never open `.env`
+  or look for credentials yourself.
 - **If there is no connection, or you are out of query budget,** put it under
-  **Needs live check** with the exact DAX query that settles it.
+  **Needs live check** with the exact DAX or SQL query that settles it.
 
 Never report an unverified data assumption as a finding. Only logic that is wrong
 for data the model can plainly hold counts.

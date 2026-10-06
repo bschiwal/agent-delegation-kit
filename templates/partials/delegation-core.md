@@ -38,6 +38,21 @@ every one of your remaining turns.
   IDs or files. Give its exact command in every brief. Otherwise each agent
   writes its own filter, and parallel builders spend turns reconciling counts
   that don't agree.
+- **Conventions before parallel builders.** Before two or more builders write
+  files of the same kind, get the conventions they share written once, to one
+  short project file (`docs/conventions-<kind>.md` or the project's
+  equivalent): the header or metadata block word for word, the project's
+  standing rules for that kind of file, and the exact lint or validation
+  command. Name it in every brief. Builders left to invent their own produce
+  the same classes of finding in every file - in one build, six SQL scripts
+  had the same five, and aligning them cost a full round of six reviews and
+  six fixes.
+- **Deterministic checks are a script, not a reviewer.** Anything a pattern
+  can check - header blocks, batch separators, forbidden keywords, columns that
+  must never be output - goes in a project lint script, written once before the
+  first review. Run it before every review round and tell reviewers which
+  checks passed, so they spend their turns on logic. A premium reviewer
+  finding a doubled `;;` is a lint rule paid for at review rates.
 - **Shape queries to return little.** For tools only you can run (live model
   queries, MCP), ask for the answer rather than the data - aggregates, counts,
   `TOPN`, one row per question - not a 100-row dump to inspect.
@@ -223,9 +238,10 @@ Each delegation gets a self-contained brief. The agent sees only what you send:
 - **Constraints** - conventions, what not to touch, runtime (for example Node),
   how to verify.
 - **Facts about the environment** - stated, not left to the agent: whether the
-  target folder is in git, and the **exact command lines** for backup, diff and
-  validation. Never just a gate name or a script name - agents guess the
-  arguments differently, and a guessed backup folder is a missing backup.
+  target folder is in git, and the **exact command lines** for backup, diff,
+  validation, lint and querying the database. Never just a gate name or a
+  script name - agents guess the arguments differently, and a guessed backup
+  folder is a missing backup.
 - **Step name** - for the builder's progress and details file,
   `.claude/runs/<step>.md`.
 - **Who else is running** - other builders working at the same time, and on

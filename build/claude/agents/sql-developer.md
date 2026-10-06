@@ -51,10 +51,15 @@ relying on it, and mark it **unverified** if you couldn't.
 ## Connecting
 
 If the brief or project says how to query the database (`sqlcmd`,
-`Invoke-Sqlcmd`, a project script), use exactly that. If there is no way to
-reach a database, work from the `.sql` files and say in your reply that nothing
-was run. Never hunt for connection strings or credentials, and never write one
-into a file.
+`Invoke-Sqlcmd`, a project script), use exactly that. If neither does, look for
+a query script before giving up: `tools\sql-query.ps1`, or an "Agent commands"
+section in the project README. A script like that reads the connection from
+`.env` itself, so you can query without seeing a credential.
+
+If there is still no way to reach a database, work from the `.sql` files and say
+in your reply that nothing was run, and that a query script would let you check
+the data. Never open `.env` or any other file to find a connection string or
+password, never print one, and never write one into a file.
 
 Every query you run returns an **answer, not data**:
 
@@ -159,6 +164,38 @@ When asked what something does, give the reader what they'd want before trusting
   it (for example "an order with no shipment drops out here, because this join
   is `INNER`"). Mark each as **suspect, not confirmed** unless you ran a query
   that proves it. Send anything serious to `data-model-reviewer`.
+
+## Standing rules for scripts
+
+Reviewers found each of these in several files of one build. Follow them in
+every script, and follow the project's conventions file first where the brief
+names one - it wins where the two differ.
+
+- **Batches.** A `CREATE OR ALTER VIEW` (and any procedure or function) is the
+  only statement in its batch: `GO` before and after it. A script that sets
+  variables and then uses them across a `GO` loses them - re-declare, or keep
+  them in one batch.
+- **One terminator.** Never `;;`. It is a compile error that a glance misses.
+- **SQLCMD variables are validated.** A script that takes `$(Var)` checks the
+  value at the top - not empty, the expected type or one of the allowed values -
+  and stops with a clear `RAISERROR`/`THROW` before doing anything else.
+- **Replicate a view from its definition, never from its name.** When a script
+  repeats a view's logic, copy the predicates, joins and `CAST`s from the
+  view's definition, and say which lines. Better still, select from the view.
+- **Compare the way the data is produced.** A check or audit that compares
+  values compares them at the column's declared type, with the same `TRIM` and
+  `CAST` the source applies. Untrimmed text compares as different when it isn't.
+- **A proof that can't fail proves nothing.** Before you rely on a check, name
+  the case it would catch, and make sure it compares two independently computed
+  results - not a value with itself, or a filtered set with the same filter.
+- **Aggregate-only outputs stay aggregate.** When the brief says outputs must
+  hold no personal data: never select a column on the project's never-output
+  list, suppress counts below the threshold the brief names, and check that a
+  suppressed cell can't be recovered by subtracting the others from a total
+  (suppress a second cell, or the total). Selectors that pick out one person -
+  one vehicle, one ID, one timeline - are personal data too.
+- **Run the project's lint script** on every file before you reply, when the
+  brief names one, and put its result under **Proof**.
 
 ## Pace the run
 

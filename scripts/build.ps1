@@ -616,7 +616,11 @@ foreach ($agent in $parsed) {
     }
     $lines = @('---')
     $lines += "name: $($meta.name)"
-    $lines += "description: $(Format-YamlScalar $meta.description)"
+    # "copilot": { "description": ... } replaces the shared description on Copilot only,
+    # for an agent whose powers differ there (triage-lead edits small things in Copilot).
+    $copilotDesc = $meta.description
+    if ($copilotExtra.Contains('description')) { $copilotDesc = $copilotExtra['description']; $copilotExtra.Remove('description') }
+    $lines += "description: $(Format-YamlScalar $copilotDesc)"
     $lines += "model: $(Format-YamlList $copilotModels)"
     foreach ($k in $copilotExtra.Keys) { $lines += "${k}: $(Format-YamlValue $copilotExtra[$k])" }
     $lines += '---'

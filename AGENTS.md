@@ -29,6 +29,8 @@ warns.
 | Change Copilot's always-on model rules | `templates/model-routing.instructions.md` |
 | Change the auto-refresh schedule | `.github/workflows/refresh-models.yml` |
 | An agent can't see its MCP tools on some machine | `registry/mcp.json` - the server's name on that platform |
+| Change the starter SQL query and lint scripts projects copy | `templates/project-tools/sql/` - starters only; each project owns its copy |
+| Give an agent a different description in Copilot | `"copilot": { "description": ... }` in its source - replaces the shared one there |
 | Apply an employer's model policy | `registry/policy.local.json` (gitignored; copy the `.example`) - never `policy.json`, which is public |
 
 Record every behaviour change in `CHANGELOG.md`: what changed, why, and the
