@@ -68,6 +68,17 @@ not the work, drove the cost. **Every change is Copilot-only**, inside
 - **`data-model-reviewer`, `security-reviewer` (Copilot)**: skip what the lint
   script passed; review a file set in one pass and report recurring findings
   once with every location.
+- **Usage line and loop check (Copilot).** Copilot shows neither agent nor
+  caller a token figure, so every Copilot agent's generated footer now asks it
+  to keep a tally and end each reply with `Usage: <calls> of ~<budget> | files
+  read (~lines) | edits | repeated calls | stopped: ...` - counts, never a token
+  guess - and to stop when it edits the same lines a third time for one problem.
+  `triage-lead` logs the line per run, uses calls in the team line, and treats a
+  run as looping on: stopped at budget or repeat failure, 3+ repeated calls,
+  many calls for few edits, a missing Usage line, or a finding that survives its
+  fix round. A looping run is never resumed: fresh narrow run, or ask the user.
+  Lives in the `-Soft` branch of `Get-BudgetFooter`, which only Copilot uses, so
+  the Claude footer and `hooks/turn-budget.ps1`'s regexes are untouched.
 - **Not done: a kit-shipped SQL lint script.** The settled "large output" row
   says the kit ships the rule, not the script; the project owns it. The rule is
   now in `triage-lead` and `sql-developer`.

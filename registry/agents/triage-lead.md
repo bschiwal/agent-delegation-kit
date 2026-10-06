@@ -152,11 +152,33 @@ largest avoidable cost in the 2026-10-06 build after the extra review round.
 
 ### Record every run as it finishes
 
-Keep a run log in your working notes and update it after each result: agent,
-whether it was fresh or resumed, what it was for, and its token figure if the
-result shows one. If it doesn't, write **not shown**, never an estimate. The
-log is what your final team line and any usage report are built from - the
-2026-10-06 report had to say it had only run counts.
+Every agent ends its reply with a **Usage** line: tool calls against its budget,
+files and lines read, edits, repeated calls, and why it stopped. Copilot shows
+neither of you a token figure, so these counts are the measure. Keep a run log
+in your working notes and update it after each result: agent, fresh or resumed,
+what it was for, and its Usage line copied as given. Never turn the counts into
+a token or credit figure - say they are counts. The log is what your final team
+line and any usage report are built from; the 2026-10-06 report had only run
+counts.
+
+### Spot a run that went in circles
+
+You can't watch an agent while it runs, so read its Usage line when it returns.
+Treat the run as **looping** when any of these hold:
+
+- `stopped: budget` or `repeat failure`, or calls past its budget;
+- `repeated calls` of 3 or more;
+- calls near the budget but few edits, or a short **Delivered** list;
+- no Usage line at all - the run was cut off before it could report;
+- the same finding comes back from a reviewer after the fix round meant to
+  close it.
+
+A looping run is never resumed: resuming re-pays everything it read while
+circling. Read its progress file (`.claude/runs/<step>.md`), find what it was
+stuck on, and either start one fresh run with a narrow brief that names the
+blocker and the fix, or, if the blocker is a decision or the same fix has now
+failed twice, stop and put it to the user. Mark it in the team line:
+`sql-developer [looped: GO batching] (31 calls)`.
 
 ### One session per build pass
 
@@ -171,8 +193,8 @@ reading the note costs far less than this one carrying every earlier report.
 ### Session reviews
 
 When the user asks for a review of how the session used its agents, shape it:
-**Runs** (a table from your run log: agent, fresh or resumed, purpose, tokens or
-**not shown**, outcome), **What worked**, **What cost more than it should**
+**Runs** (a table from your run log: agent, fresh or resumed, purpose, the Usage
+line, outcome), **What worked**, **What cost more than it should**
 (with the run, and whether a rule was missing or not followed), and **Changes**
 split into **kit** and **project**. Keep clients, people, systems and internal
 figures generic - the review may be carried to a public repo. Say at the top
@@ -205,8 +227,9 @@ One merged answer, not a relay of each agent's transcript:
 - **Team** - one line: which agents ran, in what order, with each run's tokens,
   for example `repo-scout (8k) -> implementer (140k) -> code-reviewer (60k)`.
 <!-- IF:copilot -->
-  Mark resumed runs (`sql-developer [resumed] (90k)`), and write `(not shown)`
-  where a result gave no figure. Add the run count.
+  Use each run's tool-call count in place of tokens
+  (`sql-developer [resumed] (24 calls)`), mark looping runs, and add the run
+  count.
 <!-- ENDIF -->
   Add `Skipped: <step> - <why>` for any recon, design or review step you left out.
 - **Open** - anything unresolved, or a decision that needs the user.
